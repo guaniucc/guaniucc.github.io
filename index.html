@@ -214,11 +214,12 @@
       </div>
       <h2 class="post-title">虚拟机自动疏散功能</h2>
       <article class="post-article">
-          cmpha.py解读123# 代码来源：1、https://github.com/pwxwmm/openstack_compute_evacuate2、https://blog.csdn.net/qq_28513801/article/details/124975136
-
-check方法1、chk_node  获取到enabled且down的计算节点
+          check方法1、chk_node  获取到enabled且down的计算节点
 2、chk_ser_from_node  获取这台down的计算节点上面实例的 id、ip
-3、real_cmp_down  通过实例id获取对应的volume id，通过rbd status判断volume是否有客户端在访问&amp;#x2F;连接，如
+3、real_cmp_down  通过实例id获取对应的volume id，通过rbd status判断volume是否有客户端在访问&amp;#x2F;连接，如果没有，则说明下属虚拟机都“死了”
+recover方法1、将nova_compute 设置为disable
+2、调接口进行疏散，接口如下：
+123456# 文档参考：1、https://developer.openstack.org/zh_CN/api-quick-star
       </article>
     </div>
   </div>
