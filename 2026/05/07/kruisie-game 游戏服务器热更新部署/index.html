@@ -1,0 +1,620 @@
+  <!DOCTYPE html>
+  <html lang="en"  
+      data-theme-mode="auto"
+  >
+  <head>
+  <meta charset="utf-8">
+  
+  
+  
+  <script>window.REIMU_CONFIG = {};window.REIMU_CONFIG.icon_font = '4552607_ex15nbittbh';window.REIMU_CONFIG.clipboard_tips = {"success":{"en":"Copy successfully (*^▽^*)"},"fail":{"en":"Copy failed (ﾟ⊿ﾟ)ﾂ"},"copyright":{"enable":false,"count":50,"license_type":"by-nc-sa"}};window.REIMU_CONFIG.clipboard_tips.copyright.content = 'All articles on this blog are licensed under the BY-NC-SA license agreement unless otherwise stated. Please indicate the source when reprinting!';window.REIMU_CONFIG.code_block = {"expand":true};window.REIMU_CONFIG.base = 'http://example.com';window.REIMU_CONFIG.relative = '/';</script>
+  <title>
+    kruisie-game 游戏服务器热更新部署 | guaniucc&#39;s Blog
+  </title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="preload" as="style" href="https://fonts.googleapis.com/css?family=Mulish:400,400italic,700,700italic|Noto Serif SC:400,400italic,700,700italic&display=swap"><link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Mulish:400,400italic,700,700italic|Noto Serif SC:400,400italic,700,700italic&display=swap" media="print" onload="this.media='all'">
+    <link rel="preload" href="//at.alicdn.com/t/c/font_4552607_ex15nbittbh.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+    
+<link rel="stylesheet" href="/css/loader.css">
+
+    <meta name="description" content="场景: 游戏服务器需要支持热更新，减少对在线玩家的影响挑战: 晚上连接数高，早上连接数低，传统更新方式影响用户体验解决方案: 使用 Krusie-Game 实现游戏服务器的热更新和优雅重启 环境要求Kubernetes 集群要求 Kubernetes 版本: v1.18+ 推荐版本: v1.20+ 集群节点: 至少 3 个节点（生产环境建议）  资源要求 CPU: 每个节点至少 2 核 内存: 每">
+<meta property="og:type" content="article">
+<meta property="og:title" content="kruisie-game 游戏服务器热更新部署">
+<meta property="og:url" content="http://example.com/2026/05/07/kruisie-game%20%E6%B8%B8%E6%88%8F%E6%9C%8D%E5%8A%A1%E5%99%A8%E7%83%AD%E6%9B%B4%E6%96%B0%E9%83%A8%E7%BD%B2/index.html">
+<meta property="og:site_name" content="guaniucc&#39;s Blog">
+<meta property="og:description" content="场景: 游戏服务器需要支持热更新，减少对在线玩家的影响挑战: 晚上连接数高，早上连接数低，传统更新方式影响用户体验解决方案: 使用 Krusie-Game 实现游戏服务器的热更新和优雅重启 环境要求Kubernetes 集群要求 Kubernetes 版本: v1.18+ 推荐版本: v1.20+ 集群节点: 至少 3 个节点（生产环境建议）  资源要求 CPU: 每个节点至少 2 核 内存: 每">
+<meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2026-05-07T14:32:46.751Z">
+<meta property="article:modified_time" content="2026-05-07T14:38:40.515Z">
+<meta property="article:author" content="guaniucc">
+<meta name="twitter:card" content="summary">
+    <link rel="alternate" href="/atom.xml" title="guaniucc's Blog" type="application/atom+xml">
+    <link rel="shortcut icon" href="/images/favicon.ico">
+  
+<link rel="stylesheet" href="/css/style.css">
+
+  <link rel="preload" as="style" onload="this.onload=null;this.rel='stylesheet'" href="https://npm.webcache.cn/photoswipe@5.4.4/dist/photoswipe.css" integrity="sha384-IfxC36XL/toUyJ939C73PcgMuRzAZuIzZxE38drsmO5p6jD7ei+Zx/1oA/0l8ysE" crossorigin="anonymous">
+    
+<script src="https://npm.webcache.cn/pace-js@1.2.4/pace.min.js" integrity="sha384-k6YtvFUEIuEFBdrLKJ3YAUbBki333tj1CSUisai5Cswsg9wcLNaPzsTHDswp4Az8" crossorigin="anonymous"></script>
+
+    
+<link rel="stylesheet" href="https://npm.webcache.cn/@reimujs/aos@0.1.2/dist/aos.css" integrity="sha384-GMRP93c6Hkz9JVKGAuRR3nTS7M07RwPgTFenXiosjq2VbVgvdDNcz1g6Mkj8AONa" crossorigin="anonymous">
+
+<meta name="generator" content="Hexo 8.1.2"></head>
+
+  <body>
+      <div id='loader'>
+    <div class="loading-left-bg loading-bg"></div>
+    <div class="loading-right-bg loading-bg"></div>
+    <div class="spinner-box">
+      <div class="loading-taichi rotate">
+          <svg width="150" height="150" viewBox="0 0 1024 1024" class="icon" version="1.1" xmlns="https://www.w3.org/2000/svg" shape-rendering="geometricPrecision">
+            <path d="M303.5 432A80 80 0 0 1 291.5 592A80 80 0 0 1 303.5 432z" fill="var(--red-1, #ff5252)" />
+            <path d="M512 65A447 447 0 0 1 512 959L512 929A417 417 0 0 0 512 95A417 417 0 0 0 512 929L512 959A447 447 0 0 1 512 65z 
+           M512 95A417 417 0 0 1 929 512A208.5 208.5 0 0 1 720.5 720.5L720.5 592A80 80 0 0 0 720.5 432A80 80 0 0 0 720.5 592L720.5 720.5A208.5 208.5 0 0 1 512 512A208.5 208.5 0 0 0 303.5 303.5A208.5 208.5 0 0 0 95 512A417 417 0 0 1 512 95z" fill="var(--red-1, #ff5252)" />
+          </svg>
+      </div>
+      <div class="loading-word">Loading...</div>
+    </div>
+  </div>
+  <script>
+    var time = null;
+    var loaderEl = document.getElementById('loader');
+    var startLoading = () => {
+      time = Date.now();
+      loaderEl.classList.remove("loading");
+    }
+    var hideLoader = () => {
+      document.body.style.overflow = 'auto';
+      loader.classList.add('loading');
+    };
+
+    var endLoading = () => {
+      if (!time) {
+        hideLoader();
+      } else {
+        if (Date.now() - time > 500) {
+          time = null;
+          hideLoader();
+        } else {
+          setTimeout(endLoading, 500 - (Date.now() - time));
+          time = null;
+        }
+      }
+    }
+    window.addEventListener('DOMContentLoaded', endLoading);
+    loaderEl.addEventListener('click', endLoading);
+  </script>
+<div id="copy-tooltip"></div>
+<div id="heatmap-tooltip"></div>
+
+
+    <div id="container">
+      <div id="wrap">
+        <div id="header-nav">
+  <nav id="main-nav" aria-label="Primary navigation">
+        <a class="main-nav-link-wrap" href="/">
+            <div class="main-nav-icon icon rotate">
+                &#xe62b;
+            </div>
+          <span class="main-nav-link">Home</span>
+        </a>
+        <a class="main-nav-link-wrap" href="/archives">
+            <div class="main-nav-icon icon rotate">
+                &#xe62b;
+            </div>
+          <span class="main-nav-link">Archives</span>
+        </a>
+        <a class="main-nav-link-wrap" href="/about">
+            <div class="main-nav-icon icon rotate">
+                &#xe62b;
+            </div>
+          <span class="main-nav-link">About</span>
+        </a>
+        <a class="main-nav-link-wrap" href="/friend">
+            <div class="main-nav-icon icon rotate">
+                &#xe62b;
+            </div>
+          <span class="main-nav-link">Friend</span>
+        </a>
+    <a id="main-nav-toggle" class="nav-icon" aria-label="Toggle navigation" role="button"></a>
+  </nav>
+  <nav id="sub-nav" aria-label="Secondary navigation">
+      <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed" aria-label="RSS Feed" target="_blank"></a>
+  </nav>
+</div>
+<header id="header" aria-label="Site header">
+        <picture>
+        </picture>
+          <img  fetchpriority="high" src="/images/banner.webp" alt="kruisie-game 游戏服务器热更新部署">
+  <div id="header-outer">
+    <div id="header-title">
+          <span id="logo">
+            <h1 data-aos="slide-up">kruisie-game 游戏服务器热更新部署</h1>
+          </span>
+        <h2 id="subtitle-wrap" data-aos="slide-down">
+        </h2>
+    </div>
+  </div>
+</header>
+
+        <div id="content" aria-label="Page content"  class="sidebar-right" >
+          <aside id="sidebar" aria-label="Sidebar">
+  <div class="sidebar-wrapper-container sticky">
+  <div class="sidebar-wrapper">
+    <div class="sidebar-wrap" data-aos="fade-up">
+          <div class="sidebar-toc-sidebar"><h3 class="toc-title">Contents</h3>
+<div class="sidebar-toc-wrapper toc-div-class" >
+    <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%8E%AF%E5%A2%83%E8%A6%81%E6%B1%82"><span class="toc-number">1.</span> <span class="toc-text">环境要求</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#Kubernetes-%E9%9B%86%E7%BE%A4%E8%A6%81%E6%B1%82"><span class="toc-number">1.1.</span> <span class="toc-text">Kubernetes 集群要求</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E8%B5%84%E6%BA%90%E8%A6%81%E6%B1%82"><span class="toc-number">1.2.</span> <span class="toc-text">资源要求</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%BD%91%E7%BB%9C%E8%A6%81%E6%B1%82"><span class="toc-number">1.3.</span> <span class="toc-text">网络要求</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%AE%89%E8%A3%85-Krusie-Game"><span class="toc-number">2.</span> <span class="toc-text">安装 Krusie-Game</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-%E6%B7%BB%E5%8A%A0-OpenKruise-Helm-%E4%BB%93%E5%BA%93"><span class="toc-number">2.1.</span> <span class="toc-text">1. 添加 OpenKruise Helm 仓库</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-%E5%AE%89%E8%A3%85-Krusie-Game"><span class="toc-number">2.2.</span> <span class="toc-text">2. 安装 Krusie-Game</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-%E9%AA%8C%E8%AF%81%E5%AE%89%E8%A3%85%E7%8A%B6%E6%80%81"><span class="toc-number">2.3.</span> <span class="toc-text">3. 验证安装状态</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#4-%E9%85%8D%E7%BD%AE-Krusie-Game%EF%BC%88%E5%8F%AF%E9%80%89%EF%BC%89"><span class="toc-number">2.4.</span> <span class="toc-text">4. 配置 Krusie-Game（可选）</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E9%85%8D%E7%BD%AE%E6%B8%B8%E6%88%8F%E6%9C%8D%E5%8A%A1%E5%99%A8-Deployment"><span class="toc-number">3.</span> <span class="toc-text">配置游戏服务器 Deployment</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-%E5%88%9B%E5%BB%BA-GameServerSet-%E8%B5%84%E6%BA%90"><span class="toc-number">3.1.</span> <span class="toc-text">1. 创建 GameServerSet 资源</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-%E5%BA%94%E7%94%A8%E9%85%8D%E7%BD%AE"><span class="toc-number">3.2.</span> <span class="toc-text">2. 应用配置</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-%E6%9F%A5%E7%9C%8B%E6%B8%B8%E6%88%8F%E6%9C%8D%E5%8A%A1%E5%99%A8%E7%8A%B6%E6%80%81"><span class="toc-number">3.3.</span> <span class="toc-text">3. 查看游戏服务器状态</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%83%AD%E6%9B%B4%E6%96%B0%E6%93%8D%E4%BD%9C%E6%B5%81%E7%A8%8B"><span class="toc-number">4.</span> <span class="toc-text">热更新操作流程</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-%E5%87%86%E5%A4%87%E5%B7%A5%E4%BD%9C"><span class="toc-number">4.1.</span> <span class="toc-text">1. 准备工作</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%9B%B4%E6%96%B0%E5%89%8D%E6%A3%80%E6%9F%A5"><span class="toc-number">4.1.1.</span> <span class="toc-text">更新前检查</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E9%80%89%E6%8B%A9%E6%9B%B4%E6%96%B0%E6%97%B6%E9%97%B4"><span class="toc-number">4.1.2.</span> <span class="toc-text">选择更新时间</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-%E6%89%A7%E8%A1%8C%E7%83%AD%E6%9B%B4%E6%96%B0"><span class="toc-number">4.2.</span> <span class="toc-text">2. 执行热更新</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%96%B9%E6%B3%95%E4%B8%80%EF%BC%9A%E6%9B%B4%E6%96%B0%E9%95%9C%E5%83%8F%E7%89%88%E6%9C%AC"><span class="toc-number">4.2.1.</span> <span class="toc-text">方法一：更新镜像版本</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%96%B9%E6%B3%95%E4%BA%8C%EF%BC%9A%E4%BD%BF%E7%94%A8-Helm-%E6%9B%B4%E6%96%B0"><span class="toc-number">4.2.2.</span> <span class="toc-text">方法二：使用 Helm 更新</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-%E7%9B%91%E6%8E%A7%E6%9B%B4%E6%96%B0%E8%BF%87%E7%A8%8B"><span class="toc-number">4.3.</span> <span class="toc-text">3. 监控更新过程</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#4-%E6%9B%B4%E6%96%B0%E5%90%8E%E9%AA%8C%E8%AF%81"><span class="toc-number">4.4.</span> <span class="toc-text">4. 更新后验证</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%9B%91%E6%8E%A7%E5%92%8C%E9%AA%8C%E8%AF%81"><span class="toc-number">5.</span> <span class="toc-text">监控和验证</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-%E9%85%8D%E7%BD%AE%E7%9B%91%E6%8E%A7%E6%8C%87%E6%A0%87"><span class="toc-number">5.1.</span> <span class="toc-text">1. 配置监控指标</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-%E5%85%B3%E9%94%AE%E7%9B%91%E6%8E%A7%E6%8C%87%E6%A0%87"><span class="toc-number">5.2.</span> <span class="toc-text">2. 关键监控指标</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-%E6%97%A5%E5%BF%97%E6%94%B6%E9%9B%86"><span class="toc-number">5.3.</span> <span class="toc-text">3. 日志收集</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%9C%80%E4%BD%B3%E5%AE%9E%E8%B7%B5"><span class="toc-number">6.</span> <span class="toc-text">最佳实践</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-%E6%9B%B4%E6%96%B0%E7%AD%96%E7%95%A5%E4%BC%98%E5%8C%96"><span class="toc-number">6.1.</span> <span class="toc-text">1. 更新策略优化</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%88%86%E6%89%B9%E6%9B%B4%E6%96%B0%E7%AD%96%E7%95%A5"><span class="toc-number">6.1.1.</span> <span class="toc-text">分批更新策略</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%9F%BA%E4%BA%8E%E8%B4%9F%E8%BD%BD%E7%9A%84%E6%99%BA%E8%83%BD%E6%9B%B4%E6%96%B0"><span class="toc-number">6.1.2.</span> <span class="toc-text">基于负载的智能更新</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-%E5%AE%89%E5%85%A8%E9%85%8D%E7%BD%AE"><span class="toc-number">6.2.</span> <span class="toc-text">2. 安全配置</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E7%BD%91%E7%BB%9C%E7%AD%96%E7%95%A5"><span class="toc-number">6.2.1.</span> <span class="toc-text">网络策略</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#RBAC-%E6%9D%83%E9%99%90"><span class="toc-number">6.2.2.</span> <span class="toc-text">RBAC 权限</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-%E5%A4%87%E4%BB%BD%E5%92%8C%E6%81%A2%E5%A4%8D"><span class="toc-number">6.3.</span> <span class="toc-text">3. 备份和恢复</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%AE%9A%E6%9C%9F%E5%A4%87%E4%BB%BD"><span class="toc-number">6.3.1.</span> <span class="toc-text">定期备份</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%81%A2%E5%A4%8D%E6%B5%81%E7%A8%8B"><span class="toc-number">6.3.2.</span> <span class="toc-text">恢复流程</span></a></li></ol></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%95%85%E9%9A%9C%E6%8E%92%E9%99%A4"><span class="toc-number">7.</span> <span class="toc-text">故障排除</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%B8%B8%E8%A7%81%E9%97%AE%E9%A2%98%E5%8F%8A%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88"><span class="toc-number">7.1.</span> <span class="toc-text">常见问题及解决方案</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#1-%E6%B8%B8%E6%88%8F%E6%9C%8D%E5%8A%A1%E5%99%A8%E6%9B%B4%E6%96%B0%E5%8D%A1%E4%BD%8F"><span class="toc-number">7.1.1.</span> <span class="toc-text">1. 游戏服务器更新卡住</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#2-%E6%96%B0%E7%89%88%E6%9C%AC%E6%B8%B8%E6%88%8F%E6%9C%8D%E5%8A%A1%E5%99%A8%E5%90%AF%E5%8A%A8%E5%A4%B1%E8%B4%A5"><span class="toc-number">7.1.2.</span> <span class="toc-text">2. 新版本游戏服务器启动失败</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#3-%E7%BD%91%E7%BB%9C%E8%BF%9E%E6%8E%A5%E9%97%AE%E9%A2%98"><span class="toc-number">7.1.3.</span> <span class="toc-text">3. 网络连接问题</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#4-%E8%B5%84%E6%BA%90%E4%B8%8D%E8%B6%B3"><span class="toc-number">7.1.4.</span> <span class="toc-text">4. 资源不足</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E8%AF%8A%E6%96%AD%E5%B7%A5%E5%85%B7"><span class="toc-number">7.2.</span> <span class="toc-text">诊断工具</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#1-Krusie-Game-%E8%AF%8A%E6%96%AD%E5%91%BD%E4%BB%A4"><span class="toc-number">7.2.1.</span> <span class="toc-text">1. Krusie-Game 诊断命令</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#2-%E6%B8%B8%E6%88%8F%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%8A%E6%96%AD%E8%84%9A%E6%9C%AC"><span class="toc-number">7.2.2.</span> <span class="toc-text">2. 游戏服务器诊断脚本</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98"><span class="toc-number">7.3.</span> <span class="toc-text">性能调优</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#1-Krusie-Game-%E6%8E%A7%E5%88%B6%E5%99%A8%E8%B0%83%E4%BC%98"><span class="toc-number">7.3.1.</span> <span class="toc-text">1. Krusie-Game 控制器调优</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#2-%E6%B8%B8%E6%88%8F%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%B5%84%E6%BA%90%E4%BC%98%E5%8C%96"><span class="toc-number">7.3.2.</span> <span class="toc-text">2. 游戏服务器资源优化</span></a></li></ol></li></ol></li></ol>
+</div>
+</div>
+          <div class="sidebar-common-sidebar hidden"><div class="sidebar-author">
+  <img data-src="/avatar/avatar.webp" data-sizes="auto" alt="guaniucc" class="lazyload">
+  <div class="sidebar-author-name">guaniucc</div>
+  <div class="sidebar-description"></div>
+</div>
+<div class="sidebar-state">
+  <div class="sidebar-state-article">
+    <div>Post</div>
+    <div class="sidebar-state-number">4</div>
+  </div>
+  <div class="sidebar-state-category">
+    <div>Category</div>
+    <div class="sidebar-state-number">0</div>
+  </div>
+  <div class="sidebar-state-tag">
+    <div>Tag</div>
+    <div class="sidebar-state-number">0</div>
+  </div>
+</div>
+<div class="sidebar-social" >
+</div>
+<div class="sidebar-menu">
+      <div class="sidebar-menu-link-wrap">
+        <a class="sidebar-menu-link-dummy" href="/" aria-label="Home"></a>
+          <div class="sidebar-menu-icon icon rotate">
+              &#xe62b;
+          </div>
+        <div class="sidebar-menu-link">Home</div>
+      </div>
+      <div class="sidebar-menu-link-wrap">
+        <a class="sidebar-menu-link-dummy" href="/archives" aria-label="Archives"></a>
+          <div class="sidebar-menu-icon icon rotate">
+              &#xe62b;
+          </div>
+        <div class="sidebar-menu-link">Archives</div>
+      </div>
+      <div class="sidebar-menu-link-wrap">
+        <a class="sidebar-menu-link-dummy" href="/about" aria-label="About"></a>
+          <div class="sidebar-menu-icon icon rotate">
+              &#xe62b;
+          </div>
+        <div class="sidebar-menu-link">About</div>
+      </div>
+      <div class="sidebar-menu-link-wrap">
+        <a class="sidebar-menu-link-dummy" href="/friend" aria-label="Friend"></a>
+          <div class="sidebar-menu-icon icon rotate">
+              &#xe62b;
+          </div>
+        <div class="sidebar-menu-link">Friend</div>
+      </div>
+</div>
+</div>
+          <div class="sidebar-btn-wrapper" style="position:static">
+            <div class="sidebar-toc-btn current"></div>
+            <div class="sidebar-common-btn"></div>
+          </div>
+    </div>
+  </div>
+  <div class="sidebar-widget">
+  </div>
+  </div>
+</aside>
+
+          <section id="main" aria-label="Main content"><article id="post-kruisie-game 游戏服务器热更新部署" class="h-entry article" itemscope itemtype="https://schema.org/BlogPosting">
+  <div class="article-inner" data-aos="fade-up">
+    <div class="article-meta">
+      <div class="article-date">
+  <span class="article-date-link icon-calendar" data-aos="zoom-in">
+    <time datetime="2026-05-07T14:32:46.751Z" itemprop="datePublished">2026-05-07</time>
+    <time style="display: none;" id="post-update-time">2026-05-07</time>
+  </span>
+</div>
+
+    </div>
+    
+    <div class="hr-line"></div>
+    
+    <div class="e-content article-entry" itemprop="articleBody">
+        <p><strong>场景</strong>: 游戏服务器需要支持热更新，减少对在线玩家的影响<br><strong>挑战</strong>: 晚上连接数高，早上连接数低，传统更新方式影响用户体验<br><strong>解决方案</strong>: 使用 Krusie-Game 实现游戏服务器的热更新和优雅重启</p>
+<h2 id="环境要求"><a href="#环境要求" class="headerlink" title="环境要求"></a>环境要求</h2><h3 id="Kubernetes-集群要求"><a href="#Kubernetes-集群要求" class="headerlink" title="Kubernetes 集群要求"></a>Kubernetes 集群要求</h3><ul>
+<li>Kubernetes 版本: v1.18+</li>
+<li>推荐版本: v1.20+</li>
+<li>集群节点: 至少 3 个节点（生产环境建议）</li>
+</ul>
+<h3 id="资源要求"><a href="#资源要求" class="headerlink" title="资源要求"></a>资源要求</h3><ul>
+<li>CPU: 每个节点至少 2 核</li>
+<li>内存: 每个节点至少 4GB</li>
+<li>存储: 支持动态 PV 供应</li>
+</ul>
+<h3 id="网络要求"><a href="#网络要求" class="headerlink" title="网络要求"></a>网络要求</h3><ul>
+<li>CNI 网络插件（Calico、Cilium、Flannel 等）</li>
+<li>确保节点间网络通信正常</li>
+</ul>
+<h2 id="安装-Krusie-Game"><a href="#安装-Krusie-Game" class="headerlink" title="安装 Krusie-Game"></a>安装 Krusie-Game</h2><h3 id="1-添加-OpenKruise-Helm-仓库"><a href="#1-添加-OpenKruise-Helm-仓库" class="headerlink" title="1. 添加 OpenKruise Helm 仓库"></a>1. 添加 OpenKruise Helm 仓库</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 添加 OpenKruise Helm 仓库</span></span><br><span class="line">helm repo add openkruise https://openkruise.github.io/kruise-charts</span><br><span class="line"></span><br><span class="line"><span class="comment"># 更新 Helm 仓库</span></span><br><span class="line">helm repo update</span><br><span class="line"></span><br><span class="line"><span class="comment"># 查看可用的 Krusie 版本</span></span><br><span class="line">helm search repo openkruise/kruise-game --versions</span><br></pre></td></tr></table></figure>
+
+<h3 id="2-安装-Krusie-Game"><a href="#2-安装-Krusie-Game" class="headerlink" title="2. 安装 Krusie-Game"></a>2. 安装 Krusie-Game</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 创建命名空间</span></span><br><span class="line">kubectl create namespace kruise-game-system</span><br><span class="line"></span><br><span class="line"><span class="comment"># 安装 Krusie-Game（最新版本）</span></span><br><span class="line">helm install kruise-game openkruise/kruise-game \</span><br><span class="line">  --namespace kruise-game-system \</span><br><span class="line">  --version 1.0.0 \</span><br><span class="line">  --<span class="built_in">set</span> manager.replicaCount=3 \</span><br><span class="line">  --<span class="built_in">set</span> manager.image.repository=openkruise/kruise-game-manager \</span><br><span class="line">  --<span class="built_in">set</span> manager.image.tag=v1.0.0</span><br><span class="line"></span><br><span class="line"><span class="comment"># 验证安装</span></span><br><span class="line">kubectl get pods -n kruise-game-system</span><br></pre></td></tr></table></figure>
+
+<h3 id="3-验证安装状态"><a href="#3-验证安装状态" class="headerlink" title="3. 验证安装状态"></a>3. 验证安装状态</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 检查 Krusie-Game 控制器状态</span></span><br><span class="line">kubectl get deployment -n kruise-game-system</span><br><span class="line"></span><br><span class="line"><span class="comment"># 查看 Krusie-Game CRD</span></span><br><span class="line">kubectl get crd | grep kruisegame</span><br><span class="line"></span><br><span class="line"><span class="comment"># 预期输出应包含:</span></span><br><span class="line"><span class="comment"># gameservers.apps.kruise.io</span></span><br><span class="line"><span class="comment"># gameserversets.apps.kruise.io</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="4-配置-Krusie-Game（可选）"><a href="#4-配置-Krusie-Game（可选）" class="headerlink" title="4. 配置 Krusie-Game（可选）"></a>4. 配置 Krusie-Game（可选）</h3><p>创建自定义配置文件 <code>kruise-game-config.yaml</code>：</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">ConfigMap</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">kruise-game-manager-config</span></span><br><span class="line">  <span class="attr">namespace:</span> <span class="string">kruise-game-system</span></span><br><span class="line"><span class="attr">data:</span></span><br><span class="line">  <span class="comment"># 游戏服务器优雅终止超时时间（秒）</span></span><br><span class="line">  <span class="attr">graceful-termination-period:</span> <span class="string">&quot;300&quot;</span></span><br><span class="line">  <span class="comment"># 最大并发更新数量</span></span><br><span class="line">  <span class="attr">max-concurrent-update:</span> <span class="string">&quot;10&quot;</span></span><br><span class="line">  <span class="comment"># 健康检查间隔（秒）</span></span><br><span class="line">  <span class="attr">health-check-interval:</span> <span class="string">&quot;30&quot;</span></span><br><span class="line">  <span class="comment"># 日志级别</span></span><br><span class="line">  <span class="attr">log-level:</span> <span class="string">&quot;info&quot;</span></span><br></pre></td></tr></table></figure>
+
+<p>应用配置：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">kubectl apply -f kruise-game-config.yaml</span><br><span class="line"></span><br><span class="line"><span class="comment"># 重启 Krusie-Game 控制器以应用配置</span></span><br><span class="line">kubectl rollout restart deployment kruise-game-manager -n kruise-game-system</span><br></pre></td></tr></table></figure>
+
+<h2 id="配置游戏服务器-Deployment"><a href="#配置游戏服务器-Deployment" class="headerlink" title="配置游戏服务器 Deployment"></a>配置游戏服务器 Deployment</h2><h3 id="1-创建-GameServerSet-资源"><a href="#1-创建-GameServerSet-资源" class="headerlink" title="1. 创建 GameServerSet 资源"></a>1. 创建 GameServerSet 资源</h3><p>创建 <code>game-server.yaml</code>：</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">game.kruise.io/v1alpha1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">GameServerSet</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">game-server</span></span><br><span class="line">  <span class="attr">namespace:</span> <span class="string">game-namespace</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">replicas:</span> <span class="number">10</span></span><br><span class="line">  <span class="attr">updateStrategy:</span></span><br><span class="line">    <span class="comment"># 热更新策略</span></span><br><span class="line">    <span class="attr">type:</span> <span class="string">HotUpgrade</span></span><br><span class="line">    <span class="attr">hotUpgradeOptions:</span></span><br><span class="line">      <span class="comment"># 最大不可用游戏服务器数量</span></span><br><span class="line">      <span class="attr">maxUnavailable:</span> <span class="string">&quot;20%&quot;</span></span><br><span class="line">      <span class="comment"># 分批更新间隔（秒）</span></span><br><span class="line">      <span class="attr">instanceInterval:</span> <span class="number">60</span></span><br><span class="line">      <span class="comment"># 是否等待旧游戏服务器完全终止</span></span><br><span class="line">      <span class="attr">waitForBatchComplete:</span> <span class="literal">true</span></span><br><span class="line">  <span class="attr">template:</span></span><br><span class="line">    <span class="attr">metadata:</span></span><br><span class="line">      <span class="attr">labels:</span></span><br><span class="line">        <span class="attr">app:</span> <span class="string">game-server</span></span><br><span class="line">        <span class="attr">game.kruise.io/gs-name:</span> <span class="string">&quot;game-server&quot;</span></span><br><span class="line">    <span class="attr">spec:</span></span><br><span class="line">      <span class="attr">containers:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">game-server</span></span><br><span class="line">        <span class="attr">image:</span> <span class="string">your-game-server-image:latest</span></span><br><span class="line">        <span class="attr">ports:</span></span><br><span class="line">        <span class="bullet">-</span> <span class="attr">containerPort:</span> <span class="number">8080</span></span><br><span class="line">          <span class="attr">name:</span> <span class="string">game-port</span></span><br><span class="line">        <span class="bullet">-</span> <span class="attr">containerPort:</span> <span class="number">8081</span></span><br><span class="line">          <span class="attr">name:</span> <span class="string">health-port</span></span><br><span class="line">        <span class="attr">resources:</span></span><br><span class="line">          <span class="attr">requests:</span></span><br><span class="line">            <span class="attr">memory:</span> <span class="string">&quot;512Mi&quot;</span></span><br><span class="line">            <span class="attr">cpu:</span> <span class="string">&quot;500m&quot;</span></span><br><span class="line">          <span class="attr">limits:</span></span><br><span class="line">            <span class="attr">memory:</span> <span class="string">&quot;1Gi&quot;</span></span><br><span class="line">            <span class="attr">cpu:</span> <span class="string">&quot;1000m&quot;</span></span><br><span class="line">        <span class="comment"># 健康检查</span></span><br><span class="line">        <span class="attr">livenessProbe:</span></span><br><span class="line">          <span class="attr">httpGet:</span></span><br><span class="line">            <span class="attr">path:</span> <span class="string">/health</span></span><br><span class="line">            <span class="attr">port:</span> <span class="string">health-port</span></span><br><span class="line">          <span class="attr">initialDelaySeconds:</span> <span class="number">30</span></span><br><span class="line">          <span class="attr">periodSeconds:</span> <span class="number">10</span></span><br><span class="line">        <span class="attr">readinessProbe:</span></span><br><span class="line">          <span class="attr">httpGet:</span></span><br><span class="line">            <span class="attr">path:</span> <span class="string">/ready</span></span><br><span class="line">            <span class="attr">port:</span> <span class="string">health-port</span></span><br><span class="line">          <span class="attr">initialDelaySeconds:</span> <span class="number">5</span></span><br><span class="line">          <span class="attr">periodSeconds:</span> <span class="number">5</span></span><br><span class="line">        <span class="comment"># 优雅终止配置</span></span><br><span class="line">        <span class="attr">lifecycle:</span></span><br><span class="line">          <span class="attr">preStop:</span></span><br><span class="line">            <span class="attr">exec:</span></span><br><span class="line">              <span class="attr">command:</span> [<span class="string">&quot;/bin/sh&quot;</span>, <span class="string">&quot;-c&quot;</span>, <span class="string">&quot;sleep 30 &amp;&amp; /app/graceful-shutdown.sh&quot;</span>]</span><br><span class="line">      <span class="comment"># 游戏服务器特定注解</span></span><br><span class="line">      <span class="attr">annotations:</span></span><br><span class="line">        <span class="attr">game.kruise.io/stateful-type:</span> <span class="string">&quot;true&quot;</span></span><br><span class="line">        <span class="attr">game.kruise.io/pod-drain-protection:</span> <span class="string">&quot;Always&quot;</span></span><br><span class="line"><span class="meta">---</span></span><br><span class="line"><span class="attr">apiVersion:</span> <span class="string">v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Service</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">game-server-service</span></span><br><span class="line">  <span class="attr">namespace:</span> <span class="string">game-namespace</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">selector:</span></span><br><span class="line">    <span class="attr">app:</span> <span class="string">game-server</span></span><br><span class="line">  <span class="attr">ports:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">port:</span> <span class="number">8080</span></span><br><span class="line">    <span class="attr">targetPort:</span> <span class="string">game-port</span></span><br><span class="line">    <span class="attr">name:</span> <span class="string">game</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">port:</span> <span class="number">8081</span></span><br><span class="line">    <span class="attr">targetPort:</span> <span class="string">health-port</span></span><br><span class="line">    <span class="attr">name:</span> <span class="string">health</span></span><br><span class="line">  <span class="attr">type:</span> <span class="string">ClusterIP</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="2-应用配置"><a href="#2-应用配置" class="headerlink" title="2. 应用配置"></a>2. 应用配置</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 创建命名空间</span></span><br><span class="line">kubectl create namespace game-namespace</span><br><span class="line"></span><br><span class="line"><span class="comment"># 应用 GameServerSet 配置</span></span><br><span class="line">kubectl apply -f game-server.yaml</span><br><span class="line"></span><br><span class="line"><span class="comment"># 验证 GameServerSet 创建</span></span><br><span class="line">kubectl get gameserverset -n game-namespace</span><br><span class="line">kubectl get gameserver -n game-namespace</span><br></pre></td></tr></table></figure>
+
+<h3 id="3-查看游戏服务器状态"><a href="#3-查看游戏服务器状态" class="headerlink" title="3. 查看游戏服务器状态"></a>3. 查看游戏服务器状态</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 查看所有游戏服务器</span></span><br><span class="line">kubectl get gameserver -n game-namespace -o wide</span><br><span class="line"></span><br><span class="line"><span class="comment"># 查看特定游戏服务器详情</span></span><br><span class="line">kubectl describe gameserver &lt;gs-name&gt; -n game-namespace</span><br><span class="line"></span><br><span class="line"><span class="comment"># 查看游戏服务器状态分布</span></span><br><span class="line">kubectl get gameserver -n game-namespace \</span><br><span class="line">  -o jsonpath=<span class="string">&#x27;&#123;range .items[*]&#125;&#123;.metadata.name&#125;&#123;&quot;\t&quot;&#125;&#123;.status.state&#125;&#123;&quot;\t&quot;&#125;&#123;.status.deletionTimestamp&#125;&#123;&quot;\n&quot;&#125;&#123;end&#125;&#x27;</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="热更新操作流程"><a href="#热更新操作流程" class="headerlink" title="热更新操作流程"></a>热更新操作流程</h2><h3 id="1-准备工作"><a href="#1-准备工作" class="headerlink" title="1. 准备工作"></a>1. 准备工作</h3><h4 id="更新前检查"><a href="#更新前检查" class="headerlink" title="更新前检查"></a>更新前检查</h4><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 检查当前游戏服务器状态</span></span><br><span class="line">kubectl get gameserver -n game-namespace</span><br><span class="line"></span><br><span class="line"><span class="comment"># 检查在线玩家数量（需要你的游戏服务器提供此指标）</span></span><br><span class="line">kubectl <span class="built_in">exec</span> -it &lt;any-game-pod&gt; -n game-namespace -- \</span><br><span class="line">  curl -s http://localhost:8081/metrics | grep online_players</span><br><span class="line"></span><br><span class="line"><span class="comment"># 检查集群资源使用情况</span></span><br><span class="line">kubectl top nodes</span><br><span class="line">kubectl top pods -n game-namespace</span><br></pre></td></tr></table></figure>
+
+<h4 id="选择更新时间"><a href="#选择更新时间" class="headerlink" title="选择更新时间"></a>选择更新时间</h4><p><strong>推荐策略</strong>：</p>
+<ul>
+<li><strong>低峰期更新</strong>：选择早上 2:00-6:00 进行更新</li>
+<li><strong>灰度更新</strong>：先在部分游戏服务器上测试</li>
+<li><strong>紧急更新</strong>：使用热更新策略，尽量减少影响</li>
+</ul>
+<h3 id="2-执行热更新"><a href="#2-执行热更新" class="headerlink" title="2. 执行热更新"></a>2. 执行热更新</h3><h4 id="方法一：更新镜像版本"><a href="#方法一：更新镜像版本" class="headerlink" title="方法一：更新镜像版本"></a>方法一：更新镜像版本</h4><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 更新 GameServerSet 镜像版本</span></span><br><span class="line">kubectl patch gameserverset game-server -n game-namespace \</span><br><span class="line">  --<span class="built_in">type</span>=<span class="string">&#x27;json&#x27;</span> \</span><br><span class="line">  -p=<span class="string">&#x27;[&#123;&quot;op&quot;: &quot;replace&quot;, &quot;path&quot;: &quot;/spec/template/spec/containers/0/image&quot;, &quot;value&quot;: &quot;your-game-server-image:new-version&quot;&#125;]&#x27;</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 或者使用 kubectl edit</span></span><br><span class="line">kubectl edit gameserverset game-server -n game-namespace</span><br></pre></td></tr></table></figure>
+
+<h4 id="方法二：使用-Helm-更新"><a href="#方法二：使用-Helm-更新" class="headerlink" title="方法二：使用 Helm 更新"></a>方法二：使用 Helm 更新</h4><p>如果你有使用 Helm：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 更新 Helm release</span></span><br><span class="line">helm upgrade game-server ./game-server-chart \</span><br><span class="line">  --<span class="built_in">set</span> image.tag=new-version \</span><br><span class="line">  --namespace game-namespace</span><br></pre></td></tr></table></figure>
+
+<h3 id="3-监控更新过程"><a href="#3-监控更新过程" class="headerlink" title="3. 监控更新过程"></a>3. 监控更新过程</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 实时监控游戏服务器更新状态</span></span><br><span class="line">watch kubectl get gameserver -n game-namespace -o wide</span><br><span class="line"></span><br><span class="line"><span class="comment"># 查看更新事件</span></span><br><span class="line">kubectl get events -n game-namespace --sort-by=<span class="string">&#x27;.metadata.creationTimestamp&#x27;</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 监控特定游戏服务器的日志</span></span><br><span class="line">kubectl logs -f &lt;updating-pod-name&gt; -n game-namespace</span><br><span class="line"></span><br><span class="line"><span class="comment"># 检查在线玩家数量变化</span></span><br><span class="line"><span class="keyword">while</span> <span class="literal">true</span>; <span class="keyword">do</span></span><br><span class="line">  kubectl <span class="built_in">exec</span> -it &lt;any-active-pod&gt; -n game-namespace -- \</span><br><span class="line">    curl -s http://localhost:8081/metrics | grep online_players</span><br><span class="line">  <span class="built_in">sleep</span> 30</span><br><span class="line">  <span class="built_in">echo</span> <span class="string">&quot;---&quot;</span></span><br><span class="line"><span class="keyword">done</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="4-更新后验证"><a href="#4-更新后验证" class="headerlink" title="4. 更新后验证"></a>4. 更新后验证</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 检查所有游戏服务器状态</span></span><br><span class="line">kubectl get gameserver -n game-namespace</span><br><span class="line"></span><br><span class="line"><span class="comment"># 验证新版本的 Pod 是否正常运行</span></span><br><span class="line">kubectl get pods -n game-namespace -l app=game-server</span><br><span class="line"></span><br><span class="line"><span class="comment"># 检查服务健康状态</span></span><br><span class="line">kubectl <span class="built_in">exec</span> -it &lt;new-pod-name&gt; -n game-namespace -- curl -s http://localhost:8081/health</span><br><span class="line"></span><br><span class="line"><span class="comment"># 验证玩家连接是否正常</span></span><br><span class="line"><span class="comment"># （需要你的游戏服务器提供连接状态接口）</span></span><br><span class="line">kubectl <span class="built_in">exec</span> -it &lt;new-pod-name&gt; -n game-namespace -- \</span><br><span class="line">  curl -s http://localhost:8081/player-status</span><br></pre></td></tr></table></figure>
+
+<h2 id="监控和验证"><a href="#监控和验证" class="headerlink" title="监控和验证"></a>监控和验证</h2><h3 id="1-配置监控指标"><a href="#1-配置监控指标" class="headerlink" title="1. 配置监控指标"></a>1. 配置监控指标</h3><p>创建 Prometheus 监控配置 <code>monitoring.yaml</code>：</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">monitoring.coreos.com/v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">ServiceMonitor</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">game-server-monitor</span></span><br><span class="line">  <span class="attr">namespace:</span> <span class="string">monitoring</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">selector:</span></span><br><span class="line">    <span class="attr">matchLabels:</span></span><br><span class="line">      <span class="attr">app:</span> <span class="string">game-server</span></span><br><span class="line">  <span class="attr">endpoints:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">port:</span> <span class="string">health</span></span><br><span class="line">    <span class="attr">interval:</span> <span class="string">30s</span></span><br><span class="line">    <span class="attr">path:</span> <span class="string">/metrics</span></span><br><span class="line">  <span class="attr">namespaceSelector:</span></span><br><span class="line">    <span class="attr">matchNames:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="string">game-namespace</span></span><br><span class="line"><span class="meta">---</span></span><br><span class="line"><span class="attr">apiVersion:</span> <span class="string">monitoring.coreos.com/v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">PrometheusRule</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">game-server-alerts</span></span><br><span class="line">  <span class="attr">namespace:</span> <span class="string">monitoring</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">groups:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">game-server.rules</span></span><br><span class="line">    <span class="attr">rules:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="attr">alert:</span> <span class="string">GameServerHighCPU</span></span><br><span class="line">      <span class="attr">expr:</span> <span class="string">sum(rate(container_cpu_usage_seconds_total&#123;namespace=&quot;game-namespace&quot;,</span> <span class="string">container=&quot;game-server&quot;&#125;[5m]))</span> <span class="string">by</span> <span class="string">(pod)</span> <span class="string">&gt;</span> <span class="number">0.8</span></span><br><span class="line">      <span class="attr">for:</span> <span class="string">5m</span></span><br><span class="line">      <span class="attr">labels:</span></span><br><span class="line">        <span class="attr">severity:</span> <span class="string">warning</span></span><br><span class="line">      <span class="attr">annotations:</span></span><br><span class="line">        <span class="attr">summary:</span> <span class="string">&quot;Game server high CPU usage&quot;</span></span><br><span class="line">        <span class="attr">description:</span> <span class="string">&quot;Game server <span class="template-variable">&#123;&#123; $labels.pod &#125;&#125;</span> CPU usage is above 80%&quot;</span></span><br><span class="line">    <span class="bullet">-</span> <span class="attr">alert:</span> <span class="string">GameServerHighMemory</span></span><br><span class="line">      <span class="attr">expr:</span> <span class="string">(container_memory_usage_bytes&#123;namespace=&quot;game-namespace&quot;,</span> <span class="string">container=&quot;game-server&quot;&#125;</span> <span class="string">/</span> <span class="string">container_spec_memory_limit_bytes&#123;namespace=&quot;game-namespace&quot;,</span> <span class="string">container=&quot;game-server&quot;&#125;)</span> <span class="string">&gt;</span> <span class="number">0.8</span></span><br><span class="line">      <span class="attr">for:</span> <span class="string">5m</span></span><br><span class="line">      <span class="attr">labels:</span></span><br><span class="line">        <span class="attr">severity:</span> <span class="string">warning</span></span><br><span class="line">      <span class="attr">annotations:</span></span><br><span class="line">        <span class="attr">summary:</span> <span class="string">&quot;Game server high memory usage&quot;</span></span><br><span class="line">        <span class="attr">description:</span> <span class="string">&quot;Game server <span class="template-variable">&#123;&#123; $labels.pod &#125;&#125;</span> memory usage is above 80%&quot;</span></span><br><span class="line">    <span class="bullet">-</span> <span class="attr">alert:</span> <span class="string">GameServerUpdateStuck</span></span><br><span class="line">      <span class="attr">expr:</span> <span class="string">time()</span> <span class="bullet">-</span> <span class="string">max(kube_pod_deletion_timestamp&#123;namespace=&quot;game-namespace&quot;,</span> <span class="string">pod=~&quot;game-server-.*&quot;&#125;)</span> <span class="string">by</span> <span class="string">(pod)</span> <span class="string">&gt;</span> <span class="number">300</span></span><br><span class="line">      <span class="attr">for:</span> <span class="string">2m</span></span><br><span class="line">      <span class="attr">labels:</span></span><br><span class="line">        <span class="attr">severity:</span> <span class="string">critical</span></span><br><span class="line">      <span class="attr">annotations:</span></span><br><span class="line">        <span class="attr">summary:</span> <span class="string">&quot;Game server update stuck&quot;</span></span><br><span class="line">        <span class="attr">description:</span> <span class="string">&quot;Game server <span class="template-variable">&#123;&#123; $labels.pod &#125;&#125;</span> has been in deletion for more than 5 minutes&quot;</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="2-关键监控指标"><a href="#2-关键监控指标" class="headerlink" title="2. 关键监控指标"></a>2. 关键监控指标</h3><table>
+<thead>
+<tr>
+<th>指标</th>
+<th>监控方式</th>
+<th>告警阈值</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>在线玩家数</td>
+<td>游戏服务器 &#x2F;metrics 接口</td>
+<td>无固定阈值</td>
+<td>监控更新期间玩家数量变化</td>
+</tr>
+<tr>
+<td>Pod 重启次数</td>
+<td>kube_pod_container_status_restarts_total</td>
+<td>&gt; 3次&#x2F;小时</td>
+<td>异常重启频率</td>
+</tr>
+<tr>
+<td>资源使用率</td>
+<td>container_cpu&#x2F;memory_usage</td>
+<td>&gt; 80%</td>
+<td>资源瓶颈预警</td>
+</tr>
+<tr>
+<td>网络连接数</td>
+<td>游戏服务器自定义指标</td>
+<td>根据业务设定</td>
+<td>连接异常监控</td>
+</tr>
+<tr>
+<td>更新耗时</td>
+<td>从开始到完成的时间</td>
+<td>&gt; 30分钟</td>
+<td>更新过程异常</td>
+</tr>
+</tbody></table>
+<h3 id="3-日志收集"><a href="#3-日志收集" class="headerlink" title="3. 日志收集"></a>3. 日志收集</h3><p>配置 Fluentd 或 Loki 收集游戏服务器日志：</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 示例：Fluentd 配置片段</span></span><br><span class="line"><span class="string">&lt;source&gt;</span></span><br><span class="line">  <span class="string">@type</span> <span class="string">tail</span></span><br><span class="line">  <span class="string">path</span> <span class="string">/var/log/containers/game-server*.log</span></span><br><span class="line">  <span class="string">pos_file</span> <span class="string">/var/log/game-server.log.pos</span></span><br><span class="line">  <span class="string">tag</span> <span class="string">game-server.*</span></span><br><span class="line">  <span class="string">&lt;parse&gt;</span></span><br><span class="line">    <span class="string">@type</span> <span class="string">json</span></span><br><span class="line">  <span class="string">&lt;/parse&gt;</span></span><br><span class="line"><span class="string">&lt;/source&gt;</span></span><br><span class="line"><span class="string">&lt;match</span> <span class="string">game-server.**&gt;</span></span><br><span class="line">  <span class="string">@type</span> <span class="string">elasticsearch</span></span><br><span class="line">  <span class="string">host</span> <span class="string">elasticsearch.monitoring.svc.cluster.local</span></span><br><span class="line">  <span class="string">port</span> <span class="number">9200</span></span><br><span class="line">  <span class="string">logstash_format</span> <span class="literal">true</span></span><br><span class="line">  <span class="string">logstash_prefix</span> <span class="string">game-server</span></span><br><span class="line"><span class="string">&lt;/match&gt;</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="最佳实践"><a href="#最佳实践" class="headerlink" title="最佳实践"></a>最佳实践</h2><h3 id="1-更新策略优化"><a href="#1-更新策略优化" class="headerlink" title="1. 更新策略优化"></a>1. 更新策略优化</h3><h4 id="分批更新策略"><a href="#分批更新策略" class="headerlink" title="分批更新策略"></a>分批更新策略</h4><figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">updateStrategy:</span></span><br><span class="line">  <span class="attr">type:</span> <span class="string">HotUpgrade</span></span><br><span class="line">  <span class="attr">hotUpgradeOptions:</span></span><br><span class="line">    <span class="comment"># 每次更新 20% 的游戏服务器</span></span><br><span class="line">    <span class="attr">maxUnavailable:</span> <span class="string">&quot;20%&quot;</span></span><br><span class="line">    <span class="comment"># 每批间隔 2 分钟</span></span><br><span class="line">    <span class="attr">instanceInterval:</span> <span class="number">120</span></span><br><span class="line">    <span class="comment"># 等待当前批次完全完成</span></span><br><span class="line">    <span class="attr">waitForBatchComplete:</span> <span class="literal">true</span></span><br></pre></td></tr></table></figure>
+
+<h4 id="基于负载的智能更新"><a href="#基于负载的智能更新" class="headerlink" title="基于负载的智能更新"></a>基于负载的智能更新</h4><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 检查当前负载情况</span></span><br><span class="line">CURRENT_LOAD=$(kubectl <span class="built_in">exec</span> -it &lt;pod&gt; -n game-namespace -- \</span><br><span class="line">  curl -s http://localhost:8081/metrics | grep current_load | awk <span class="string">&#x27;&#123;print $2&#125;&#x27;</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> (( $(echo &quot;<span class="variable">$CURRENT_LOAD</span> &lt; <span class="number">0.3</span>&quot; | bc -l) )); <span class="keyword">then</span></span><br><span class="line">  <span class="built_in">echo</span> <span class="string">&quot;负载较低，可以开始更新&quot;</span></span><br><span class="line">  <span class="comment"># 执行更新命令</span></span><br><span class="line"><span class="keyword">else</span></span><br><span class="line">  <span class="built_in">echo</span> <span class="string">&quot;负载较高，延迟更新&quot;</span></span><br><span class="line">  <span class="comment"># 等待或选择其他时间</span></span><br><span class="line"><span class="keyword">fi</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="2-安全配置"><a href="#2-安全配置" class="headerlink" title="2. 安全配置"></a>2. 安全配置</h3><h4 id="网络策略"><a href="#网络策略" class="headerlink" title="网络策略"></a>网络策略</h4><figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">networking.k8s.io/v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">NetworkPolicy</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">game-server-network-policy</span></span><br><span class="line">  <span class="attr">namespace:</span> <span class="string">game-namespace</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">podSelector:</span></span><br><span class="line">    <span class="attr">matchLabels:</span></span><br><span class="line">      <span class="attr">app:</span> <span class="string">game-server</span></span><br><span class="line">  <span class="attr">policyTypes:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="string">Ingress</span></span><br><span class="line">  <span class="bullet">-</span> <span class="string">Egress</span></span><br><span class="line">  <span class="attr">ingress:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">from:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="attr">podSelector:</span></span><br><span class="line">        <span class="attr">matchLabels:</span></span><br><span class="line">          <span class="attr">app:</span> <span class="string">game-client</span></span><br><span class="line">    <span class="attr">ports:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="attr">protocol:</span> <span class="string">TCP</span></span><br><span class="line">      <span class="attr">port:</span> <span class="number">8080</span></span><br><span class="line">  <span class="attr">egress:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">to:</span> []</span><br><span class="line">    <span class="attr">ports:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="attr">protocol:</span> <span class="string">TCP</span></span><br><span class="line">      <span class="attr">port:</span> <span class="number">53</span></span><br><span class="line">    <span class="bullet">-</span> <span class="attr">protocol:</span> <span class="string">UDP</span></span><br><span class="line">      <span class="attr">port:</span> <span class="number">53</span></span><br></pre></td></tr></table></figure>
+
+<h4 id="RBAC-权限"><a href="#RBAC-权限" class="headerlink" title="RBAC 权限"></a>RBAC 权限</h4><figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">rbac.authorization.k8s.io/v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Role</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">namespace:</span> <span class="string">game-namespace</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">game-server-operator</span></span><br><span class="line"><span class="attr">rules:</span></span><br><span class="line"><span class="bullet">-</span> <span class="attr">apiGroups:</span> [<span class="string">&quot;game.kruise.io&quot;</span>]</span><br><span class="line">  <span class="attr">resources:</span> [<span class="string">&quot;gameservers&quot;</span>, <span class="string">&quot;gameserversets&quot;</span>]</span><br><span class="line">  <span class="attr">verbs:</span> [<span class="string">&quot;get&quot;</span>, <span class="string">&quot;list&quot;</span>, <span class="string">&quot;watch&quot;</span>, <span class="string">&quot;create&quot;</span>, <span class="string">&quot;update&quot;</span>, <span class="string">&quot;patch&quot;</span>, <span class="string">&quot;delete&quot;</span>]</span><br><span class="line"><span class="bullet">-</span> <span class="attr">apiGroups:</span> [<span class="string">&quot;&quot;</span>]</span><br><span class="line">  <span class="attr">resources:</span> [<span class="string">&quot;pods&quot;</span>, <span class="string">&quot;services&quot;</span>]</span><br><span class="line">  <span class="attr">verbs:</span> [<span class="string">&quot;get&quot;</span>, <span class="string">&quot;list&quot;</span>, <span class="string">&quot;watch&quot;</span>]</span><br><span class="line"><span class="meta">---</span></span><br><span class="line"><span class="attr">apiVersion:</span> <span class="string">rbac.authorization.k8s.io/v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">RoleBinding</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">game-server-operator-binding</span></span><br><span class="line">  <span class="attr">namespace:</span> <span class="string">game-namespace</span></span><br><span class="line"><span class="attr">subjects:</span></span><br><span class="line"><span class="bullet">-</span> <span class="attr">kind:</span> <span class="string">ServiceAccount</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">game-server-sa</span></span><br><span class="line">  <span class="attr">namespace:</span> <span class="string">game-namespace</span></span><br><span class="line"><span class="attr">roleRef:</span></span><br><span class="line">  <span class="attr">kind:</span> <span class="string">Role</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">game-server-operator</span></span><br><span class="line">  <span class="attr">apiGroup:</span> <span class="string">rbac.authorization.k8s.io</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="3-备份和恢复"><a href="#3-备份和恢复" class="headerlink" title="3. 备份和恢复"></a>3. 备份和恢复</h3><h4 id="定期备份"><a href="#定期备份" class="headerlink" title="定期备份"></a>定期备份</h4><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 备份 GameServerSet 配置</span></span><br><span class="line">kubectl get gameserverset game-server -n game-namespace -o yaml &gt; backup-gameserverset.yaml</span><br><span class="line"></span><br><span class="line"><span class="comment"># 备份游戏数据（如果有持久化存储）</span></span><br><span class="line">kubectl <span class="built_in">exec</span> -it &lt;pod&gt; -n game-namespace -- tar -czf /backup/game-data-$(<span class="built_in">date</span> +%Y%m%d).tar.gz /game/data</span><br><span class="line"></span><br><span class="line"><span class="comment"># 自动备份脚本</span></span><br><span class="line"><span class="comment">#!/bin/bash</span></span><br><span class="line">DATE=$(<span class="built_in">date</span> +%Y%m%d_%H%M%S)</span><br><span class="line">BACKUP_DIR=<span class="string">&quot;/backup/game-server&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="built_in">mkdir</span> -p <span class="variable">$BACKUP_DIR</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 备份配置</span></span><br><span class="line">kubectl get gameserverset -n game-namespace -o yaml &gt; <span class="variable">$BACKUP_DIR</span>/gameserverset-<span class="variable">$DATE</span>.yaml</span><br><span class="line"></span><br><span class="line"><span class="comment"># 备份游戏服务器状态</span></span><br><span class="line">kubectl get gameserver -n game-namespace -o yaml &gt; <span class="variable">$BACKUP_DIR</span>/gameserver-status-<span class="variable">$DATE</span>.yaml</span><br><span class="line"></span><br><span class="line"><span class="built_in">echo</span> <span class="string">&quot;Backup completed: <span class="variable">$BACKUP_DIR</span>/game-server-<span class="variable">$DATE</span>&quot;</span></span><br></pre></td></tr></table></figure>
+
+<h4 id="恢复流程"><a href="#恢复流程" class="headerlink" title="恢复流程"></a>恢复流程</h4><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 恢复 GameServerSet 配置</span></span><br><span class="line">kubectl apply -f backup-gameserverset.yaml</span><br><span class="line"></span><br><span class="line"><span class="comment"># 如果出现问题，回滚到之前的版本</span></span><br><span class="line">kubectl patch gameserverset game-server -n game-namespace \</span><br><span class="line">  --<span class="built_in">type</span>=<span class="string">&#x27;json&#x27;</span> \</span><br><span class="line">  -p=<span class="string">&#x27;[&#123;&quot;op&quot;: &quot;replace&quot;, &quot;path&quot;: &quot;/spec/template/spec/containers/0/image&quot;, &quot;value&quot;: &quot;your-game-server-image:previous-version&quot;&#125;]&#x27;</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="故障排除"><a href="#故障排除" class="headerlink" title="故障排除"></a>故障排除</h2><h3 id="常见问题及解决方案"><a href="#常见问题及解决方案" class="headerlink" title="常见问题及解决方案"></a>常见问题及解决方案</h3><h4 id="1-游戏服务器更新卡住"><a href="#1-游戏服务器更新卡住" class="headerlink" title="1. 游戏服务器更新卡住"></a>1. 游戏服务器更新卡住</h4><p><strong>症状</strong>: 游戏服务器长时间处于 Terminating 状态</p>
+<p><strong>解决方案</strong>:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 检查游戏服务器状态</span></span><br><span class="line">kubectl describe gameserver &lt;stuck-gs&gt; -n game-namespace</span><br><span class="line"></span><br><span class="line"><span class="comment"># 检查 Pod 状态</span></span><br><span class="line">kubectl describe pod &lt;stuck-pod&gt; -n game-namespace</span><br><span class="line"></span><br><span class="line"><span class="comment"># 强制删除（谨慎使用）</span></span><br><span class="line">kubectl delete gameserver &lt;stuck-gs&gt; -n game-namespace --grace-period=0 --force</span><br><span class="line"></span><br><span class="line"><span class="comment"># 检查是否有玩家连接</span></span><br><span class="line">kubectl <span class="built_in">exec</span> -it &lt;stuck-pod&gt; -n game-namespace -- \</span><br><span class="line">  curl -s http://localhost:8081/player-count</span><br></pre></td></tr></table></figure>
+
+<h4 id="2-新版本游戏服务器启动失败"><a href="#2-新版本游戏服务器启动失败" class="headerlink" title="2. 新版本游戏服务器启动失败"></a>2. 新版本游戏服务器启动失败</h4><p><strong>症状</strong>: 新 Pod 无法启动或健康检查失败</p>
+<p><strong>解决方案</strong>:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 查看 Pod 日志</span></span><br><span class="line">kubectl logs &lt;failed-pod&gt; -n game-namespace</span><br><span class="line"></span><br><span class="line"><span class="comment"># 检查事件</span></span><br><span class="line">kubectl get events -n game-namespace --field-selector involvedObject.name=&lt;failed-pod&gt;</span><br><span class="line"></span><br><span class="line"><span class="comment"># 临时回滚</span></span><br><span class="line">kubectl patch gameserverset game-server -n game-namespace \</span><br><span class="line">  --<span class="built_in">type</span>=<span class="string">&#x27;json&#x27;</span> \</span><br><span class="line">  -p=<span class="string">&#x27;[&#123;&quot;op&quot;: &quot;replace&quot;, &quot;path&quot;: &quot;/spec/template/spec/containers/0/image&quot;, &quot;value&quot;: &quot;your-game-server-image:stable-version&quot;&#125;]&#x27;</span></span><br></pre></td></tr></table></figure>
+
+<h4 id="3-网络连接问题"><a href="#3-网络连接问题" class="headerlink" title="3. 网络连接问题"></a>3. 网络连接问题</h4><p><strong>症状</strong>: 玩家无法连接到游戏服务器</p>
+<p><strong>解决方案</strong>:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 检查 Service 状态</span></span><br><span class="line">kubectl get svc game-server-service -n game-namespace</span><br><span class="line"></span><br><span class="line"><span class="comment"># 检查网络策略</span></span><br><span class="line">kubectl get networkpolicy -n game-namespace</span><br><span class="line"></span><br><span class="line"><span class="comment"># 测试网络连通性</span></span><br><span class="line">kubectl run debug-pod --image=busybox -n game-namespace --<span class="built_in">rm</span> -it -- \</span><br><span class="line">  wget --<span class="built_in">timeout</span>=5 game-server-service:8080</span><br><span class="line"></span><br><span class="line"><span class="comment"># 检查 DNS 解析</span></span><br><span class="line">kubectl run debug-pod --image=busybox -n game-namespace --<span class="built_in">rm</span> -it -- nslookup game-server-service</span><br></pre></td></tr></table></figure>
+
+<h4 id="4-资源不足"><a href="#4-资源不足" class="headerlink" title="4. 资源不足"></a>4. 资源不足</h4><p><strong>症状</strong>: Pod 无法调度或频繁重启</p>
+<p><strong>解决方案</strong>:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 检查节点资源</span></span><br><span class="line">kubectl top nodes</span><br><span class="line">kubectl describe nodes</span><br><span class="line"></span><br><span class="line"><span class="comment"># 检查资源请求和限制</span></span><br><span class="line">kubectl describe gameserverset game-server -n game-namespace</span><br><span class="line"></span><br><span class="line"><span class="comment"># 调整资源配置</span></span><br><span class="line">kubectl patch gameserverset game-server -n game-namespace \</span><br><span class="line">  --<span class="built_in">type</span>=<span class="string">&#x27;json&#x27;</span> \</span><br><span class="line">  -p=<span class="string">&#x27;[&#123;&quot;op&quot;: &quot;replace&quot;, &quot;path&quot;: &quot;/spec/template/spec/containers/0/resources&quot;, &quot;value&quot;: &#123;&quot;requests&quot;: &#123;&quot;memory&quot;: &quot;1Gi&quot;, &quot;cpu&quot;: &quot;1000m&quot;&#125;, &quot;limits&quot;: &#123;&quot;memory&quot;: &quot;2Gi&quot;, &quot;cpu&quot;: &quot;2000m&quot;&#125;&#125;]&#x27;</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="诊断工具"><a href="#诊断工具" class="headerlink" title="诊断工具"></a>诊断工具</h3><h4 id="1-Krusie-Game-诊断命令"><a href="#1-Krusie-Game-诊断命令" class="headerlink" title="1. Krusie-Game 诊断命令"></a>1. Krusie-Game 诊断命令</h4><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 检查 Krusie-Game 控制器日志</span></span><br><span class="line">kubectl logs -f deployment/kruise-game-manager -n kruise-game-system</span><br><span class="line"></span><br><span class="line"><span class="comment"># 检查 Krusie-Game 事件</span></span><br><span class="line">kubectl get events -n kruise-game-system</span><br><span class="line"></span><br><span class="line"><span class="comment"># 检查 CRD 状态</span></span><br><span class="line">kubectl get crd gameservers.apps.kruise.io -o yaml</span><br></pre></td></tr></table></figure>
+
+<h4 id="2-游戏服务器诊断脚本"><a href="#2-游戏服务器诊断脚本" class="headerlink" title="2. 游戏服务器诊断脚本"></a>2. 游戏服务器诊断脚本</h4><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#!/bin/bash</span></span><br><span class="line"><span class="comment"># game-server-diagnostic.sh</span></span><br><span class="line"></span><br><span class="line">NAMESPACE=<span class="string">&quot;game-namespace&quot;</span></span><br><span class="line">GAME_SERVER_SET=<span class="string">&quot;game-server&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="built_in">echo</span> <span class="string">&quot;=== Krusie-Game 诊断报告 ===&quot;</span></span><br><span class="line"><span class="built_in">echo</span> <span class="string">&quot;生成时间: <span class="subst">$(date)</span>&quot;</span></span><br><span class="line"><span class="built_in">echo</span> <span class="string">&quot;&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="built_in">echo</span> <span class="string">&quot;1. Krusie-Game 控制器状态:&quot;</span></span><br><span class="line">kubectl get deployment -n kruise-game-system</span><br><span class="line">necho <span class="string">&quot;&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="built_in">echo</span> <span class="string">&quot;2. GameServerSet 状态:&quot;</span></span><br><span class="line">kubectl get gameserverset <span class="variable">$GAME_SERVER_SET</span> -n <span class="variable">$NAMESPACE</span></span><br><span class="line">necho <span class="string">&quot;&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="built_in">echo</span> <span class="string">&quot;3. GameServer 状态:&quot;</span></span><br><span class="line">kubectl get gameserver -n <span class="variable">$NAMESPACE</span> -o wide</span><br><span class="line">necho <span class="string">&quot;&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="built_in">echo</span> <span class="string">&quot;4. Pod 状态:&quot;</span></span><br><span class="line">kubectl get pods -n <span class="variable">$NAMESPACE</span> -l app=game-server</span><br><span class="line">necho <span class="string">&quot;&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="built_in">echo</span> <span class="string">&quot;5. 资源使用情况:&quot;</span></span><br><span class="line">kubectl top pods -n <span class="variable">$NAMESPACE</span> -l app=game-server</span><br><span class="line">necho <span class="string">&quot;&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="built_in">echo</span> <span class="string">&quot;6. 最近事件:&quot;</span></span><br><span class="line">kubectl get events -n <span class="variable">$NAMESPACE</span> --sort-by=<span class="string">&#x27;.metadata.creationTimestamp&#x27;</span> | <span class="built_in">tail</span> -10</span><br><span class="line">necho <span class="string">&quot;&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="built_in">echo</span> <span class="string">&quot;=== 诊断完成 ===&quot;</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="性能调优"><a href="#性能调优" class="headerlink" title="性能调优"></a>性能调优</h3><h4 id="1-Krusie-Game-控制器调优"><a href="#1-Krusie-Game-控制器调优" class="headerlink" title="1. Krusie-Game 控制器调优"></a>1. Krusie-Game 控制器调优</h4><figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># kruise-game-performance.yaml</span></span><br><span class="line"><span class="attr">apiVersion:</span> <span class="string">apps/v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Deployment</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">kruise-game-manager</span></span><br><span class="line">  <span class="attr">namespace:</span> <span class="string">kruise-game-system</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">template:</span></span><br><span class="line">    <span class="attr">spec:</span></span><br><span class="line">      <span class="attr">containers:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">manager</span></span><br><span class="line">        <span class="attr">resources:</span></span><br><span class="line">          <span class="attr">requests:</span></span><br><span class="line">            <span class="attr">memory:</span> <span class="string">&quot;256Mi&quot;</span></span><br><span class="line">            <span class="attr">cpu:</span> <span class="string">&quot;200m&quot;</span></span><br><span class="line">          <span class="attr">limits:</span></span><br><span class="line">            <span class="attr">memory:</span> <span class="string">&quot;512Mi&quot;</span></span><br><span class="line">            <span class="attr">cpu:</span> <span class="string">&quot;500m&quot;</span></span><br><span class="line">        <span class="attr">args:</span></span><br><span class="line">        <span class="bullet">-</span> <span class="string">--leader-elect</span></span><br><span class="line">        <span class="bullet">-</span> <span class="string">--leader-elect-lease-duration=15s</span></span><br><span class="line">        <span class="bullet">-</span> <span class="string">--leader-elect-renew-deadline=10s</span></span><br><span class="line">        <span class="bullet">-</span> <span class="string">--leader-elect-retry-period=5s</span></span><br><span class="line">        <span class="bullet">-</span> <span class="string">--concurrent-reconciles=5</span></span><br><span class="line">        <span class="bullet">-</span> <span class="string">--health-probe-bind-address=:8081</span></span><br><span class="line">        <span class="bullet">-</span> <span class="string">--metrics-bind-address=:8080</span></span><br></pre></td></tr></table></figure>
+
+<h4 id="2-游戏服务器资源优化"><a href="#2-游戏服务器资源优化" class="headerlink" title="2. 游戏服务器资源优化"></a>2. 游戏服务器资源优化</h4><figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 根据实际负载调整资源</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">template:</span></span><br><span class="line">    <span class="attr">spec:</span></span><br><span class="line">      <span class="attr">containers:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">game-server</span></span><br><span class="line">        <span class="attr">resources:</span></span><br><span class="line">          <span class="attr">requests:</span></span><br><span class="line">            <span class="attr">memory:</span> <span class="string">&quot;1Gi&quot;</span>  <span class="comment"># 根据实际内存使用调整</span></span><br><span class="line">            <span class="attr">cpu:</span> <span class="string">&quot;1000m&quot;</span>   <span class="comment"># 根据实际CPU使用调整</span></span><br><span class="line">          <span class="attr">limits:</span></span><br><span class="line">            <span class="attr">memory:</span> <span class="string">&quot;2Gi&quot;</span>  <span class="comment"># 限制最大内存使用</span></span><br><span class="line">            <span class="attr">cpu:</span> <span class="string">&quot;2000m&quot;</span>   <span class="comment"># 限制最大CPU使用</span></span><br><span class="line">        <span class="comment"># 启用内存限制（如果支持）</span></span><br><span class="line">        <span class="attr">env:</span></span><br><span class="line">        <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">GOGC</span></span><br><span class="line">          <span class="attr">value:</span> <span class="string">&quot;100&quot;</span>  <span class="comment"># Go 垃圾回收设置</span></span><br></pre></td></tr></table></figure>
+
+
+    </div>
+    <footer class="article-footer">
+      
+      
+    </footer>
+  </div>
+    <nav id="article-nav" aria-label="Article navigation" data-aos="fade-up">
+    <div class="article-nav-link-wrap right">
+          <img data-src="/images/banner.webp" data-sizes="auto" alt="Kubernetes EFK 日志系统部署" class="lazyload">
+      <a href="/2026/05/07/Kubernetes-EFK%E6%97%A5%E5%BF%97%E7%B3%BB%E7%BB%9F%E9%83%A8%E7%BD%B2%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97/" aria-label="Next: Kubernetes EFK 日志系统部署"  title="Next: Kubernetes EFK 日志系统部署"></a>
+      <div class="article-nav-caption">Next</div>
+      <h3 class="article-nav-title">
+          Kubernetes EFK 日志系统部署
+      </h3>
+    </div>
+  </nav>
+
+</article>
+
+
+</section>
+        </div>
+        <footer id="footer" aria-label="Site footer">
+  <div style="width: 100%; overflow: hidden">
+    <div class="footer-line"></div>
+  </div>
+  <div id="footer-info">
+    <div>
+      <span class="icon-copyright"></span>
+        2020-2026
+        <span class="footer-info-sep rotate"></span>
+      guaniucc
+    </div>
+
+      <div>
+        <span class="icon-brush"></span>
+        12.4k
+        &nbsp;|&nbsp;
+        <span class="icon-coffee"></span>
+        01:11
+      </div>
+      <div>
+        <span class="icon-eye"></span>
+        <span id="busuanzi_container_site_pv">Number of visits&nbsp;<span id="busuanzi_value_site_pv"></span></span>
+        &nbsp;|&nbsp;
+        <span class="icon-user"></span>
+        <span id="busuanzi_container_site_uv">Number of visitors&nbsp;<span id="busuanzi_value_site_uv"></span></span>
+      </div>
+  </div>
+</footer>
+
+          <div class="sidebar-top">
+            <div class="sidebar-top-taichi rotate"></div>
+            <div class="arrow-up"></div>
+          </div>
+        <div id="mask" class="hide"></div>
+      </div>
+      <nav id="mobile-nav" aria-label="Mobile navigation">
+  <div class="sidebar-wrap">
+        <div class="sidebar-toc-sidebar"><h3 class="toc-title">Contents</h3>
+<div class="sidebar-toc-wrapper toc-div-class" >
+    <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%8E%AF%E5%A2%83%E8%A6%81%E6%B1%82"><span class="toc-number">1.</span> <span class="toc-text">环境要求</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#Kubernetes-%E9%9B%86%E7%BE%A4%E8%A6%81%E6%B1%82"><span class="toc-number">1.1.</span> <span class="toc-text">Kubernetes 集群要求</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E8%B5%84%E6%BA%90%E8%A6%81%E6%B1%82"><span class="toc-number">1.2.</span> <span class="toc-text">资源要求</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%BD%91%E7%BB%9C%E8%A6%81%E6%B1%82"><span class="toc-number">1.3.</span> <span class="toc-text">网络要求</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%AE%89%E8%A3%85-Krusie-Game"><span class="toc-number">2.</span> <span class="toc-text">安装 Krusie-Game</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-%E6%B7%BB%E5%8A%A0-OpenKruise-Helm-%E4%BB%93%E5%BA%93"><span class="toc-number">2.1.</span> <span class="toc-text">1. 添加 OpenKruise Helm 仓库</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-%E5%AE%89%E8%A3%85-Krusie-Game"><span class="toc-number">2.2.</span> <span class="toc-text">2. 安装 Krusie-Game</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-%E9%AA%8C%E8%AF%81%E5%AE%89%E8%A3%85%E7%8A%B6%E6%80%81"><span class="toc-number">2.3.</span> <span class="toc-text">3. 验证安装状态</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#4-%E9%85%8D%E7%BD%AE-Krusie-Game%EF%BC%88%E5%8F%AF%E9%80%89%EF%BC%89"><span class="toc-number">2.4.</span> <span class="toc-text">4. 配置 Krusie-Game（可选）</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E9%85%8D%E7%BD%AE%E6%B8%B8%E6%88%8F%E6%9C%8D%E5%8A%A1%E5%99%A8-Deployment"><span class="toc-number">3.</span> <span class="toc-text">配置游戏服务器 Deployment</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-%E5%88%9B%E5%BB%BA-GameServerSet-%E8%B5%84%E6%BA%90"><span class="toc-number">3.1.</span> <span class="toc-text">1. 创建 GameServerSet 资源</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-%E5%BA%94%E7%94%A8%E9%85%8D%E7%BD%AE"><span class="toc-number">3.2.</span> <span class="toc-text">2. 应用配置</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-%E6%9F%A5%E7%9C%8B%E6%B8%B8%E6%88%8F%E6%9C%8D%E5%8A%A1%E5%99%A8%E7%8A%B6%E6%80%81"><span class="toc-number">3.3.</span> <span class="toc-text">3. 查看游戏服务器状态</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%83%AD%E6%9B%B4%E6%96%B0%E6%93%8D%E4%BD%9C%E6%B5%81%E7%A8%8B"><span class="toc-number">4.</span> <span class="toc-text">热更新操作流程</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-%E5%87%86%E5%A4%87%E5%B7%A5%E4%BD%9C"><span class="toc-number">4.1.</span> <span class="toc-text">1. 准备工作</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%9B%B4%E6%96%B0%E5%89%8D%E6%A3%80%E6%9F%A5"><span class="toc-number">4.1.1.</span> <span class="toc-text">更新前检查</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E9%80%89%E6%8B%A9%E6%9B%B4%E6%96%B0%E6%97%B6%E9%97%B4"><span class="toc-number">4.1.2.</span> <span class="toc-text">选择更新时间</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-%E6%89%A7%E8%A1%8C%E7%83%AD%E6%9B%B4%E6%96%B0"><span class="toc-number">4.2.</span> <span class="toc-text">2. 执行热更新</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%96%B9%E6%B3%95%E4%B8%80%EF%BC%9A%E6%9B%B4%E6%96%B0%E9%95%9C%E5%83%8F%E7%89%88%E6%9C%AC"><span class="toc-number">4.2.1.</span> <span class="toc-text">方法一：更新镜像版本</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%96%B9%E6%B3%95%E4%BA%8C%EF%BC%9A%E4%BD%BF%E7%94%A8-Helm-%E6%9B%B4%E6%96%B0"><span class="toc-number">4.2.2.</span> <span class="toc-text">方法二：使用 Helm 更新</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-%E7%9B%91%E6%8E%A7%E6%9B%B4%E6%96%B0%E8%BF%87%E7%A8%8B"><span class="toc-number">4.3.</span> <span class="toc-text">3. 监控更新过程</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#4-%E6%9B%B4%E6%96%B0%E5%90%8E%E9%AA%8C%E8%AF%81"><span class="toc-number">4.4.</span> <span class="toc-text">4. 更新后验证</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%9B%91%E6%8E%A7%E5%92%8C%E9%AA%8C%E8%AF%81"><span class="toc-number">5.</span> <span class="toc-text">监控和验证</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-%E9%85%8D%E7%BD%AE%E7%9B%91%E6%8E%A7%E6%8C%87%E6%A0%87"><span class="toc-number">5.1.</span> <span class="toc-text">1. 配置监控指标</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-%E5%85%B3%E9%94%AE%E7%9B%91%E6%8E%A7%E6%8C%87%E6%A0%87"><span class="toc-number">5.2.</span> <span class="toc-text">2. 关键监控指标</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-%E6%97%A5%E5%BF%97%E6%94%B6%E9%9B%86"><span class="toc-number">5.3.</span> <span class="toc-text">3. 日志收集</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%9C%80%E4%BD%B3%E5%AE%9E%E8%B7%B5"><span class="toc-number">6.</span> <span class="toc-text">最佳实践</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-%E6%9B%B4%E6%96%B0%E7%AD%96%E7%95%A5%E4%BC%98%E5%8C%96"><span class="toc-number">6.1.</span> <span class="toc-text">1. 更新策略优化</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%88%86%E6%89%B9%E6%9B%B4%E6%96%B0%E7%AD%96%E7%95%A5"><span class="toc-number">6.1.1.</span> <span class="toc-text">分批更新策略</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%9F%BA%E4%BA%8E%E8%B4%9F%E8%BD%BD%E7%9A%84%E6%99%BA%E8%83%BD%E6%9B%B4%E6%96%B0"><span class="toc-number">6.1.2.</span> <span class="toc-text">基于负载的智能更新</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-%E5%AE%89%E5%85%A8%E9%85%8D%E7%BD%AE"><span class="toc-number">6.2.</span> <span class="toc-text">2. 安全配置</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E7%BD%91%E7%BB%9C%E7%AD%96%E7%95%A5"><span class="toc-number">6.2.1.</span> <span class="toc-text">网络策略</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#RBAC-%E6%9D%83%E9%99%90"><span class="toc-number">6.2.2.</span> <span class="toc-text">RBAC 权限</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-%E5%A4%87%E4%BB%BD%E5%92%8C%E6%81%A2%E5%A4%8D"><span class="toc-number">6.3.</span> <span class="toc-text">3. 备份和恢复</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%AE%9A%E6%9C%9F%E5%A4%87%E4%BB%BD"><span class="toc-number">6.3.1.</span> <span class="toc-text">定期备份</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%81%A2%E5%A4%8D%E6%B5%81%E7%A8%8B"><span class="toc-number">6.3.2.</span> <span class="toc-text">恢复流程</span></a></li></ol></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%95%85%E9%9A%9C%E6%8E%92%E9%99%A4"><span class="toc-number">7.</span> <span class="toc-text">故障排除</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%B8%B8%E8%A7%81%E9%97%AE%E9%A2%98%E5%8F%8A%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88"><span class="toc-number">7.1.</span> <span class="toc-text">常见问题及解决方案</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#1-%E6%B8%B8%E6%88%8F%E6%9C%8D%E5%8A%A1%E5%99%A8%E6%9B%B4%E6%96%B0%E5%8D%A1%E4%BD%8F"><span class="toc-number">7.1.1.</span> <span class="toc-text">1. 游戏服务器更新卡住</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#2-%E6%96%B0%E7%89%88%E6%9C%AC%E6%B8%B8%E6%88%8F%E6%9C%8D%E5%8A%A1%E5%99%A8%E5%90%AF%E5%8A%A8%E5%A4%B1%E8%B4%A5"><span class="toc-number">7.1.2.</span> <span class="toc-text">2. 新版本游戏服务器启动失败</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#3-%E7%BD%91%E7%BB%9C%E8%BF%9E%E6%8E%A5%E9%97%AE%E9%A2%98"><span class="toc-number">7.1.3.</span> <span class="toc-text">3. 网络连接问题</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#4-%E8%B5%84%E6%BA%90%E4%B8%8D%E8%B6%B3"><span class="toc-number">7.1.4.</span> <span class="toc-text">4. 资源不足</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E8%AF%8A%E6%96%AD%E5%B7%A5%E5%85%B7"><span class="toc-number">7.2.</span> <span class="toc-text">诊断工具</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#1-Krusie-Game-%E8%AF%8A%E6%96%AD%E5%91%BD%E4%BB%A4"><span class="toc-number">7.2.1.</span> <span class="toc-text">1. Krusie-Game 诊断命令</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#2-%E6%B8%B8%E6%88%8F%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%8A%E6%96%AD%E8%84%9A%E6%9C%AC"><span class="toc-number">7.2.2.</span> <span class="toc-text">2. 游戏服务器诊断脚本</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98"><span class="toc-number">7.3.</span> <span class="toc-text">性能调优</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#1-Krusie-Game-%E6%8E%A7%E5%88%B6%E5%99%A8%E8%B0%83%E4%BC%98"><span class="toc-number">7.3.1.</span> <span class="toc-text">1. Krusie-Game 控制器调优</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#2-%E6%B8%B8%E6%88%8F%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%B5%84%E6%BA%90%E4%BC%98%E5%8C%96"><span class="toc-number">7.3.2.</span> <span class="toc-text">2. 游戏服务器资源优化</span></a></li></ol></li></ol></li></ol>
+</div>
+</div>
+        <div class="sidebar-common-sidebar hidden"><div class="sidebar-author">
+  <img data-src="/avatar/avatar.webp" data-sizes="auto" alt="guaniucc" class="lazyload">
+  <div class="sidebar-author-name">guaniucc</div>
+  <div class="sidebar-description"></div>
+</div>
+<div class="sidebar-state">
+  <div class="sidebar-state-article">
+    <div>Post</div>
+    <div class="sidebar-state-number">4</div>
+  </div>
+  <div class="sidebar-state-category">
+    <div>Category</div>
+    <div class="sidebar-state-number">0</div>
+  </div>
+  <div class="sidebar-state-tag">
+    <div>Tag</div>
+    <div class="sidebar-state-number">0</div>
+  </div>
+</div>
+<div class="sidebar-social" >
+</div>
+<div class="sidebar-menu">
+      <div class="sidebar-menu-link-wrap">
+        <a class="sidebar-menu-link-dummy" href="/" aria-label="Home"></a>
+          <div class="sidebar-menu-icon icon rotate">
+              &#xe62b;
+          </div>
+        <div class="sidebar-menu-link">Home</div>
+      </div>
+      <div class="sidebar-menu-link-wrap">
+        <a class="sidebar-menu-link-dummy" href="/archives" aria-label="Archives"></a>
+          <div class="sidebar-menu-icon icon rotate">
+              &#xe62b;
+          </div>
+        <div class="sidebar-menu-link">Archives</div>
+      </div>
+      <div class="sidebar-menu-link-wrap">
+        <a class="sidebar-menu-link-dummy" href="/about" aria-label="About"></a>
+          <div class="sidebar-menu-icon icon rotate">
+              &#xe62b;
+          </div>
+        <div class="sidebar-menu-link">About</div>
+      </div>
+      <div class="sidebar-menu-link-wrap">
+        <a class="sidebar-menu-link-dummy" href="/friend" aria-label="Friend"></a>
+          <div class="sidebar-menu-icon icon rotate">
+              &#xe62b;
+          </div>
+        <div class="sidebar-menu-link">Friend</div>
+      </div>
+</div>
+</div>
+  </div>
+      <div class="sidebar-btn-wrapper">
+        <div class="sidebar-toc-btn current"></div>
+        <div class="sidebar-common-btn"></div>
+      </div>
+</nav>
+
+    </div>
+    
+<script src="https://npm.webcache.cn/lazysizes@5.3.2/lazysizes.min.js" integrity="sha384-3gT&#x2F;vsepWkfz&#x2F;ff7PpWNUeMzeWoH3cDhm&#x2F;A8jM7ouoAK0&#x2F;fP&#x2F;9bcHHR5kHq2nf+e" crossorigin="anonymous"></script>
+
+
+<script src="https://npm.webcache.cn/clipboard@2.0.11/dist/clipboard.min.js" integrity="sha384-J08i8An&#x2F;QeARD9ExYpvphB8BsyOj3Gh2TSh1aLINKO3L0cMSH2dN3E22zFoXEi0Q" crossorigin="anonymous"></script>
+
+
+
+
+<script src="/js/script.js"></script>
+
+
+  
+<script src="/js/aos.js"></script>
+
+  <script>
+    var aosInit = () => {
+      AOS.init({
+        duration: 1000,
+        easing: "ease",
+        once: true,
+        offset: 50,
+      });
+    };
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', aosInit);
+    } else {
+      aosInit();
+    }
+  </script>
+
+
+<script src="/js/pjax_script.js" data-pjax></script>
+
+
+
+
+  <script>
+    var setupFirework = () => {
+      if (!false || !window.matchMedia('(max-width: 768px)').matches) {
+        window.firework && window.firework(JSON.parse('{"excludeElements":["a","button"],"particles":[{"shape":"circle","move":["emit"],"easing":"easeOutExpo","colors":["var(--red-1)","var(--red-2)","var(--red-3)","var(--red-4)"],"number":20,"duration":[1200,1800],"shapeOptions":{"radius":[16,32],"alpha":[0.3,0.5]}},{"shape":"circle","move":["diffuse"],"easing":"easeOutExpo","colors":["var(--red-0)"],"number":1,"duration":[1200,1800],"shapeOptions":{"radius":20,"alpha":[0.2,0.5],"lineWidth":6}}]}'));
+      }
+    }
+  </script>
+  
+<script src="https://npm.webcache.cn/mouse-firework@0.2.0/dist/index.umd.js" integrity="sha384-qi9WggRt19tv8Vc7pCHW3ulMNLwrn515zaLEWZjl1px07vz8+pUoWX8n1rgq282T" crossorigin="anonymous" onload="setupFirework()" defer></script>
+
+
+
+
+
+
+<div id="lazy-script">
+  <div>
+      
+      
+      <script data-pjax>
+        window.REIMU_POST = {
+          author: "guaniucc",
+          title: "kruisie-game 游戏服务器热更新部署",
+          url: "http://example.com/2026/05/07/kruisie-game%20%E6%B8%B8%E6%88%8F%E6%9C%8D%E5%8A%A1%E5%99%A8%E7%83%AD%E6%9B%B4%E6%96%B0%E9%83%A8%E7%BD%B2/",
+          excerpt: "",
+          description: "",
+          stripContent: "场景: 游戏服务器需要支持热更新，减少对在线玩家的影响挑战: 晚上连接数高，早上连接数低，传统更新方式影响用户体验解决方案: 使用 Krusie-Game 实现游戏服务器的热更新和优雅重启 环境要求Kubernetes 集群要求 Kubernetes 版本: v1.18+ 推荐版本: v1.20+ 集群节点: 至少 3 个节点（生产环境建议）  资源要求 CPU: 每个节点至少 2 核 内存: 每个节点至少 4GB 存储: 支持动态 PV 供应  网络要求 CNI 网络插件（Calico、Cil",
+          date: "Thu May 07 2026 22:32:46 GMT+0800",
+          updated: "Thu May 07 2026 22:38:40 GMT+0800",
+          cover: "/images/banner.webp",
+        };
+      </script>
+        
+<script src="/js/insert_highlight.js" data-pjax></script>
+
+      
+<script src="/js/tabs.js" data-pjax defer></script>
+
+      <script type="module" data-pjax>
+        (async () => {
+          const PhotoSwipeLightbox = (await safeImport("https://npm.webcache.cn/photoswipe@5.4.4/dist/photoswipe-lightbox.esm.min.js", "sha384-DiL6M/gG+wmTxmCRZyD1zee6lIhawn5TGvED0FOh7fXcN9B0aZ9dexSF/N6lrZi/")).default;
+          const initPswp = (gallery, children) => {
+            if (_$$(`${gallery} ${children}`).length > 0) {
+              new PhotoSwipeLightbox({
+                gallery,
+                children,
+                pswpModule: () => safeImport("https://npm.webcache.cn/photoswipe@5.4.4/dist/photoswipe.esm.min.js", "sha384-WkkO3GCmgkC3VQWpaV8DqhKJqpzpF9JoByxDmnV8+oTJ7m3DfYEWX1fu1scuS4+s")
+              }).init();
+            }
+          }
+          const pswp = () => {
+            initPswp('.article-entry', 'a.article-gallery-item');
+            initPswp('.article-gallery', 'a.article-gallery-item');
+          }
+          pswp();
+        })();
+      </script>
+        
+
+
+  </div>
+</div>
+
+
+  <script>
+    console.log(String.raw`%c 
+ ______     ______     __     __    __     __  __    
+/\  == \   /\  ___\   /\ \   /\ "-./  \   /\ \/\ \   
+\ \  __<   \ \  __\   \ \ \  \ \ \-./\ \  \ \ \_\ \  
+ \ \_\ \_\  \ \_____\  \ \_\  \ \_\ \ \_\  \ \_____\ 
+  \/_/ /_/   \/_____/   \/_/   \/_/  \/_/   \/_____/ 
+                                                  
+`,'color: #ff5252;')
+    console.log('%c Theme.Reimu v' + '1.12.4' + ' %c https://github.com/D-Sketon/hexo-theme-reimu ', 'color: white; background: #ff5252; padding:5px 0;', 'padding:4px;border:1px solid #ff5252;')
+  </script>
+  
+
+
+  
+<script src="https://npm.webcache.cn/busuanzi@2.3.0/bsz.pure.mini.js" integrity="sha384-0M75wtSkhjIInv4coYlaJU83+OypaRCIq2SukQVQX04eGTCBXJDuWAbJet56id+S" crossorigin="anonymous" async></script>
+
+
+<script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistrations().then((registrations) => {
+      for (let registration of registrations) {
+        registration.unregister();
+      }
+    });
+  }
+</script>
+
+
+
+
+  </body>
+  </html>
