@@ -25,7 +25,7 @@
 <meta property="og:description" content="为解决的问题当数据包量过大时，网卡流量上不去，表现是连接会“断联”，但是从监控上看没有出现丢包情况（云数据库，DGW，云redis，容器node节点、vpn网关机等） cpu软中断集中在cpu0 上，没有分流到其他cpu 一、设置RSS（硬件）比如服务器的核数是8核（8颗cpu），则设置队列为8 1234# 查看可设置的最大网卡队列数ethtool -l eth0# 设置网卡队列数ethtool">
 <meta property="og:locale" content="en_US">
 <meta property="article:published_time" content="2026-05-08T02:07:43.154Z">
-<meta property="article:modified_time" content="2026-05-08T02:09:52.831Z">
+<meta property="article:modified_time" content="2026-05-08T02:29:38.020Z">
 <meta property="article:author" content="guaniucc">
 <meta name="twitter:card" content="summary">
     <link rel="alternate" href="/atom.xml" title="guaniucc's Blog" type="application/atom+xml">
@@ -258,8 +258,6 @@
 <li><strong>解决</strong>: 启用RPS将流量分摊到多个CPU</li>
 <li><strong>配置示例</strong>:</li>
 </ul>
-<p>bash</p>
-<p><strong>复制****下载</strong></p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"># 将eth0的RX队列0分配到CPU 0-7</span><br><span class="line">echo ff &gt; /sys/class/net/eth0/queues/rx-0/rps_cpus</span><br><span class="line">echo 32768 &gt; /sys/class/net/eth0/queues/rx-0/rps_flow_cnt</span><br></pre></td></tr></table></figure>
 
 <h5 id="场景2：CPU负载不均衡"><a href="#场景2：CPU负载不均衡" class="headerlink" title="场景2：CPU负载不均衡"></a>场景2：CPU负载不均衡</h5><ul>
@@ -309,11 +307,9 @@
 <td>Linux内核参数</td>
 </tr>
 </tbody></table>
-<h2 id="四、工作原理对比"><a href="#四、工作原理对比" class="headerlink" title="四、工作原理对比"></a>四、工作原理对比</h2><h3 id="1-ethtool-L-combined-RSS"><a href="#1-ethtool-L-combined-RSS" class="headerlink" title="1. ethtool -L combined (RSS)"></a><strong>1. ethtool -L combined (RSS)</strong></h3><p><strong>复制****下载</strong></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">网络数据包 → [网卡硬件] → 哈希计算 → 分配到不同硬件队列 → 不同CPU中断</span><br><span class="line">           （硬件分流）          （每个队列有独立中断）</span><br></pre></td></tr></table></figure>
+<h2 id="四、工作原理对比"><a href="#四、工作原理对比" class="headerlink" title="四、工作原理对比"></a>四、工作原理对比</h2><h3 id="1-ethtool-L-combined-RSS"><a href="#1-ethtool-L-combined-RSS" class="headerlink" title="1. ethtool -L combined (RSS)"></a><strong>1. ethtool -L combined (RSS)</strong></h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">网络数据包 → [网卡硬件] → 哈希计算 → 分配到不同硬件队列 → 不同CPU中断</span><br><span class="line">           （硬件分流）          （每个队列有独立中断）</span><br></pre></td></tr></table></figure>
 
-<h3 id="2-RPS"><a href="#2-RPS" class="headerlink" title="2. RPS"></a><strong>2. RPS</strong></h3><p><strong>复制****下载</strong></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">网络数据包 → [网卡单队列] → 所有包到CPU0 → 内核软件哈希 → 分发到其他CPU</span><br><span class="line">           （硬件单队列）   （软件分流到多个CPU）</span><br></pre></td></tr></table></figure>
+<h3 id="2-RPS"><a href="#2-RPS" class="headerlink" title="2. RPS"></a><strong>2. RPS</strong></h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">网络数据包 → [网卡单队列] → 所有包到CPU0 → 内核软件哈希 → 分发到其他CPU</span><br><span class="line">           （硬件单队列）   （软件分流到多个CPU）</span><br></pre></td></tr></table></figure>
 
 
 
@@ -327,8 +323,6 @@
 <li>配置原则：<strong>尽可能用RSS，必要时用RPS补充</strong></li>
 </ol>
 <p><strong>配置决策流程</strong>：</p>
-<p>text</p>
-<p><strong>复制****下载</strong></p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">检查网卡是否支持多队列</span><br><span class="line">    ↓</span><br><span class="line">是 → 设置ethtool -L combined到最大值</span><br><span class="line">    ↓</span><br><span class="line">检查队列数是否≥CPU核心数</span><br><span class="line">    ↓</span><br><span class="line">否 → 启用RPS扩展剩余CPU</span><br><span class="line">    ↓</span><br><span class="line">是 → 禁用RPS，纯RSS模式</span><br></pre></td></tr></table></figure>
 
 <p>通过合理配置RSS和RPS，可以最大化利用多核CPU的网络处理能力，显著提升网络性能。</p>
@@ -531,7 +525,7 @@
           description: "",
           stripContent: "为解决的问题当数据包量过大时，网卡流量上不去，表现是连接会“断联”，但是从监控上看没有出现丢包情况（云数据库，DGW，云redis，容器node节点、vpn网关机等） cpu软中断集中在cpu0 上，没有分流到其他cpu 一、设置RSS（硬件）比如服务器的核数是8核（8颗cpu），则设置队列为8 1234# 查看可设置的最大网卡队列数ethtool -l eth0# 设置网卡队列数ethtool -L eth0 combined 8    二、设置RPS&amp;#x2F;RFS（软件）/sys/cla",
           date: "Fri May 08 2026 10:07:43 GMT+0800",
-          updated: "Fri May 08 2026 10:09:52 GMT+0800",
+          updated: "Fri May 08 2026 10:29:38 GMT+0800",
           cover: "/../images/banner-600w.webp",
         };
       </script>
