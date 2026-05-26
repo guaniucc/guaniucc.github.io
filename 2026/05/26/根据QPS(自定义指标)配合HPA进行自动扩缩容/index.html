@@ -24,7 +24,7 @@
 <meta property="og:site_name" content="guaniucc&#39;s Blog">
 <meta property="og:description" content="一、安装Metrics Server（看入门篇）二、安装Prometheus-Adapter12345helm repo add prometheus-community https:&#x2F;&#x2F;prometheus-community.github.io&#x2F;helm-chartshelm install prometheus-adapter prometheus-community&#x2F;prometheus-">
 <meta property="og:locale" content="en_US">
-<meta property="og:image" content="http://example.com/..%5Cimages%5Cmd-image%5Cimage-20260526174142196.png">
+<meta property="og:image" content="http://example.com/images/md-image/image-20260526174142196.png">
 <meta property="og:image" content="http://example.com/..%5Cimages%5Cmd-image%5Cimage-20260526174154743.png">
 <meta property="og:image" content="http://example.com/..%5Cimages%5Cmd-image%5Cimage-20260526174215519.png">
 <meta property="og:image" content="http://example.com/..%5Cimages%5Cmd-image%5Cimage-20260526174228402.png">
@@ -34,10 +34,10 @@
 <meta property="og:image" content="d:\hexo\source\images\md-image\image-20260526174332337.png">
 <meta property="og:image" content="http://example.com/..%5Cimages%5Cmd-image%5Cimage-20260526174338581.png">
 <meta property="article:published_time" content="2026-05-26T09:09:19.674Z">
-<meta property="article:modified_time" content="2026-05-26T09:48:28.023Z">
+<meta property="article:modified_time" content="2026-05-26T09:59:39.389Z">
 <meta property="article:author" content="guaniucc">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:image" content="http://example.com/..%5Cimages%5Cmd-image%5Cimage-20260526174142196.png">
+<meta name="twitter:image" content="http://example.com/images/md-image/image-20260526174142196.png">
     <link rel="alternate" href="/atom.xml" title="guaniucc's Blog" type="application/atom+xml">
     <link rel="shortcut icon" href="/images/favicon.ico">
   
@@ -240,7 +240,7 @@
 <p>安装后要在cm中添加配置，vllm_qps是程序中做的埋点指标（具体见下文）</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">## kubectl edit cm prometheus-adapter -n kube-system</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    - seriesQuery: &#x27;vllm_qps&#x27;</span><br><span class="line">      resources:</span><br><span class="line">        overrides:</span><br><span class="line">          kubernetes_namespace: &#123;resource: &quot;namespace&quot;&#125;</span><br><span class="line">          kubernetes_pod: &#123;resource: &quot;pod&quot;&#125;</span><br><span class="line">      name:</span><br><span class="line">        matches: &quot;^(.*)_total$&quot;</span><br><span class="line">        as: &quot;$&#123;1&#125;_per_second&quot;</span><br><span class="line">      metricsQuery: &#x27;sum(rate(vllm_qps&#123;&lt;&lt;.LabelMatchers&gt;&gt;&#125;[2m])) by (&lt;&lt;.GroupBy&gt;&gt;)&#x27;</span><br></pre></td></tr></table></figure>
 
-<p><img src="/..%5Cimages%5Cmd-image%5Cimage-20260526174142196.png" alt="image-20260526174142196"></p>
+<p><img src="/images/md-image/image-20260526174142196.png"></p>
 <p>Prometheus中也需要添加target，并添加pod和namespace的labels，便于hpa实现自动扩缩容</p>
 <p><img src="/..%5Cimages%5Cmd-image%5Cimage-20260526174154743.png" alt="image-20260526174154743"></p>
 <p>完成后更新即可</p>
@@ -461,7 +461,7 @@
           description: "",
           stripContent: "一、安装Metrics Server（看入门篇）二、安装Prometheus-Adapter12345helm repo add prometheus-community https://prometheus-community.github.io/helm-chartshelm install prometheus-adapter prometheus-community/prometheus-adapter \  --namespace kube-system \  --set promet",
           date: "Tue May 26 2026 17:09:19 GMT+0800",
-          updated: "Tue May 26 2026 17:48:28 GMT+0800",
+          updated: "Tue May 26 2026 17:59:39 GMT+0800",
           cover: "https://d-sketon.top/img/_backwebp/bg1.webp",
         };
       </script>
