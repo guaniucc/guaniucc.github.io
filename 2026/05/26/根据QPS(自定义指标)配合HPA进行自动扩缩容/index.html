@@ -25,16 +25,16 @@
 <meta property="og:description" content="一、安装Metrics Server（看入门篇）二、安装Prometheus-Adapter12345helm repo add prometheus-community https:&#x2F;&#x2F;prometheus-community.github.io&#x2F;helm-chartshelm install prometheus-adapter prometheus-community&#x2F;prometheus-">
 <meta property="og:locale" content="en_US">
 <meta property="og:image" content="http://example.com/images/md-image/image-20260526174142196.png">
-<meta property="og:image" content="http://example.com/..%5Cimages%5Cmd-image%5Cimage-20260526174154743.png">
-<meta property="og:image" content="http://example.com/..%5Cimages%5Cmd-image%5Cimage-20260526174215519.png">
-<meta property="og:image" content="http://example.com/..%5Cimages%5Cmd-image%5Cimage-20260526174228402.png">
-<meta property="og:image" content="http://example.com/..%5Cimages%5Cmd-image%5Cimage-20260526174237264.png">
-<meta property="og:image" content="http://example.com/..%5Cimages%5Cmd-image%5Cimage-20260526174244517.png">
-<meta property="og:image" content="http://example.com/..%5Cimages%5Cmd-image%5Cimage-20260526174321008.png">
-<meta property="og:image" content="d:\hexo\source\images\md-image\image-20260526174332337.png">
-<meta property="og:image" content="http://example.com/..%5Cimages%5Cmd-image%5Cimage-20260526174338581.png">
+<meta property="og:image" content="http://example.com/images/md-image/image-20260526174154743.png">
+<meta property="og:image" content="http://example.com/images/md-image/image-20260526174215519.png">
+<meta property="og:image" content="http://example.com/images/md-image/image-20260526174228402.png">
+<meta property="og:image" content="http://example.com/images/md-image/image-20260526174237264.png">
+<meta property="og:image" content="http://example.com/images/md-image/image-20260526174244517.png">
+<meta property="og:image" content="http://example.com/images/md-image/image-20260526174321008.png">
+<meta property="og:image" content="http://example.com/images/md-image/image-20260526174332337.png">
+<meta property="og:image" content="http://example.com/images/md-image/image-20260526174338581.png">
 <meta property="article:published_time" content="2026-05-26T09:09:19.674Z">
-<meta property="article:modified_time" content="2026-05-26T09:59:39.389Z">
+<meta property="article:modified_time" content="2026-05-26T10:02:52.947Z">
 <meta property="article:author" content="guaniucc">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:image" content="http://example.com/images/md-image/image-20260526174142196.png">
@@ -242,7 +242,7 @@
 
 <p><img src="/images/md-image/image-20260526174142196.png"></p>
 <p>Prometheus中也需要添加target，并添加pod和namespace的labels，便于hpa实现自动扩缩容</p>
-<p><img src="/..%5Cimages%5Cmd-image%5Cimage-20260526174154743.png" alt="image-20260526174154743"></p>
+<p><img src="/images/md-image/image-20260526174154743.png"></p>
 <p>完成后更新即可</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">kubectl rollout restart deployment prometheus -n kube-system</span><br><span class="line">kubectl rollout restart deployment prometheus-adapter -n kube-system</span><br></pre></td></tr></table></figure>
 
@@ -253,20 +253,20 @@
 <h1 id="四、配置hpa实现自动扩缩容"><a href="#四、配置hpa实现自动扩缩容" class="headerlink" title="四、配置hpa实现自动扩缩容"></a>四、配置hpa实现自动扩缩容</h1><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line">kubectl get --raw /apis/custom.metrics.k8s.io/v1beta1 | grep vllm</span><br><span class="line">apiVersion: autoscaling/v2</span><br><span class="line">kind: HorizontalPodAutoscaler</span><br><span class="line">metadata:</span><br><span class="line">  name: qps-hpa</span><br><span class="line">spec:</span><br><span class="line">  scaleTargetRef:</span><br><span class="line">    apiVersion: apps/v1</span><br><span class="line">    kind: Deployment</span><br><span class="line">    name: qps-test</span><br><span class="line">  minReplicas: 2</span><br><span class="line">  maxReplicas: 10</span><br><span class="line">  metrics:</span><br><span class="line">  - <span class="built_in">type</span>: Pods</span><br><span class="line">    pods:</span><br><span class="line">      metric:</span><br><span class="line">        name: vllm_qps_per_second <span class="comment"># 来自 Prometheus Adapter 的转换后指标名</span></span><br><span class="line">      target:</span><br><span class="line">        <span class="built_in">type</span>: AverageValue</span><br><span class="line">        averageValue: <span class="string">&quot;5&quot;</span>  <span class="comment"># 目标平均 QPS 为 10/秒</span></span><br></pre></td></tr></table></figure>
 
 <p>apply之后，kubectl get hpa看下是否成功，如果这里能够识别到说明成功了</p>
-<p><img src="/..%5Cimages%5Cmd-image%5Cimage-20260526174215519.png" alt="image-20260526174215519"></p>
+<p><img src="/images/md-image/image-20260526174215519.png"></p>
 <h1 id="五、测试验证"><a href="#五、测试验证" class="headerlink" title="五、测试验证"></a>五、测试验证</h1><p>apt下载hey （HTTP 压测工具）工具，然后开压</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">hey -n 1000 -c 10 -m POST http://10.104.99.112:8080/generate</span><br></pre></td></tr></table></figure>
 
 <p>查看监控以及hpa</p>
-<p><img src="/..%5Cimages%5Cmd-image%5Cimage-20260526174228402.png" alt="image-20260526174228402"></p>
-<p><img src="/..%5Cimages%5Cmd-image%5Cimage-20260526174237264.png" alt="image-20260526174237264"></p>
+<p><img src="/images/md-image/image-20260526174228402.png"></p>
+<p><img src="/images/md-image/image-20260526174237264.png"></p>
 <p>发现已自动扩容，过了好一会之后，发现自动缩容回去了</p>
-<p><img src="/..%5Cimages%5Cmd-image%5Cimage-20260526174244517.png" alt="image-20260526174244517"></p>
+<p><img src="/images/md-image/image-20260526174244517.png"></p>
 <h1 id="六、过程中问题"><a href="#六、过程中问题" class="headerlink" title="六、过程中问题"></a>六、过程中问题</h1><p>1、从自建harbor拉镜像，老是通过http去拉，解决方法是在&#x2F;etc&#x2F;containerd&#x2F;config.toml中跳过验证</p>
-<p><img src="/..%5Cimages%5Cmd-image%5Cimage-20260526174321008.png" alt="image-20260526174321008"></p>
+<p><img src="/images/md-image/image-20260526174321008.png"></p>
 <p>2、Prometheus-adapter获取不到qps指标，原因是adapter中添加了overrides，而Prometheus在获取指标时，没有加上pod和namespace的labels，导致没匹配上，解决方法是在Prometheus中加上</p>
-<p><img src="D:\hexo\source\images\md-image\image-20260526174332337.png" alt="image-20260526174332337"></p>
-<p><img src="/..%5Cimages%5Cmd-image%5Cimage-20260526174338581.png" alt="image-20260526174338581"></p>
+<p><img src="/images/md-image/image-20260526174332337.png"></p>
+<p><img src="/images/md-image/image-20260526174338581.png"></p>
 <h1 id="七、后续优化点"><a href="#七、后续优化点" class="headerlink" title="七、后续优化点"></a>七、后续优化点</h1><p>1、要根据具体业务场景去优化对应指标的采集间隔、扩缩容缓冲时间；</p>
 <p>2、扩容也不是无限制的扩，要有上限；</p>
 <p>3、调研清楚业务的高峰、低谷期，提前准备好扩容资源</p>
@@ -461,7 +461,7 @@
           description: "",
           stripContent: "一、安装Metrics Server（看入门篇）二、安装Prometheus-Adapter12345helm repo add prometheus-community https://prometheus-community.github.io/helm-chartshelm install prometheus-adapter prometheus-community/prometheus-adapter \  --namespace kube-system \  --set promet",
           date: "Tue May 26 2026 17:09:19 GMT+0800",
-          updated: "Tue May 26 2026 17:59:39 GMT+0800",
+          updated: "Tue May 26 2026 18:02:52 GMT+0800",
           cover: "https://d-sketon.top/img/_backwebp/bg1.webp",
         };
       </script>
